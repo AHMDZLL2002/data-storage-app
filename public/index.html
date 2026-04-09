@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Storage - Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Login Header -->
+  <div class="login-header">
+    <div class="header-content">
+      <div class="logo-section">
+        <img src="images/logo-main.png" alt="Organization Logo" class="logo-image" onerror="this.src='images/logo-placeholder.svg'">
+      </div>
+      <div class="header-text">
+        <h1 class="institution-name">Data Management System</h1>
+        <p class="institution-subtitle">Sistem Pengurusan Data</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-container">
+    <h2>Login Portal</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <button type="submit" class="btn">Login</button>
+      <div id="message" class="message"></div>
+    </form>
+  </div>
+
+  <!-- Login Footer -->
+  <div class="login-footer">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <img src="images/logo-footer.png" alt="Organization Logo" class="footer-logo-image" onerror="this.src='images/logo-placeholder.svg'">
+      </div>
+      <div class="footer-text">
+        <p class="copyright-text">
+          Hakcipta Terpelihara 2026 © Sekretariat Sabah Maju Jaya, Jabatan Ketua Menteri
+        </p>
+        <p class="developer-text">
+          Dibangunkan oleh AHMAD ZUL IBRAHIM
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const messageDiv = document.getElementById('message');
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          messageDiv.textContent = 'Login successful! Redirecting...';
+          messageDiv.className = 'message success';
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1000);
+        } else {
+          messageDiv.textContent = data.message;
+          messageDiv.className = 'message error';
+          messageDiv.style.display = 'block';
+        }
+      } catch (error) {
+        messageDiv.textContent = 'An error occurred. Please try again.';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

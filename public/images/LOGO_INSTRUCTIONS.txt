@@ -1,0 +1,30 @@
+INSTRUKSI PENAMBAHAN LOGO
+========================
+
+Folder ini adalah tempat untuk menyimpan logo Anda.
+
+LANGKAH-LANGKAH:
+1. Simpan file logo Anda (format: PNG, JPG, atau SVG) ke folder ini dengan nama "logo.png"
+2. Ukuran rekomendasi: lebar 400px, tinggi 400px (PNG) atau SVG
+3. Logo akan otomatis ditampilkan di:
+   - Halaman login (di header atas)
+   - Dashboard (jika diperlukan)
+
+NAMA FILE YANG DIPERLUKAN:
+- logo.png (atau logo.jpg, logo.svg)
+
+CONTOH:
+Jika Anda memiliki 2 logo:
+- Logo 1 (bulat): Simpan sebagai "logo-main.png"
+- Logo 2 (shield): Simpan sebagai "logo-shield.png"
+
+Kemudian update index.html baris:
+<img src="images/logo.png" alt="Organization Logo" class="logo-image">
+
+Menjadi:
+<img src="images/logo-main.png" alt="Organization Logo" class="logo-image">
+
+ATAU gunakan logo 2:
+<img src="images/logo-shield.png" alt="Organization Logo" class="logo-image">
+
+Untuk bantuan lebih lanjut, hubungi administrator sistem.

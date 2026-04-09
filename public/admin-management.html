@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Management - Data Storage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <div class="navbar">
+      <h2>Admin Management</h2>
+      <div class="user-info">
+        <span>Welcome, <strong id="username">Admin</strong></span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+
+    <div class="dashboard-container">
+      <h1>Paparan ADMIN - User Management</h1>
+
+      <!-- Register New Admin Section -->
+      <div class="admin-section">
+        <h2>Register Pentadbir Baru</h2>
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="newUsername">Username (diperlukan):</label>
+            <input type="text" id="newUsername" name="newUsername" required>
+          </div>
+          <div class="form-group">
+            <label for="newPassword">Password (diperlukan):</label>
+            <input type="password" id="newPassword" name="newPassword" required minlength="5">
+          </div>
+          <button type="submit" class="btn">Register Admin Baru</button>
+          <div id="registerMessage" class="message"></div>
+        </form>
+      </div>
+
+      <!-- Admin List Section -->
+      <div class="admin-section">
+        <h2>Senarai Pentadbir</h2>
+        <table class="data-table" id="adminTable">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Username</th>
+              <th>Tarikh Daftar</th>
+              <th>Tindakan</th>
+            </tr>
+          </thead>
+          <tbody id="adminBody">
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 20px;">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Load user info
+    async function loadUserInfo() {
+      try {
+        const response = await fetch('/api/user');
+        const data = await response.json();
+        document.getElementById('username').textContent = data.username;
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      }
+    }
+
+    // Load admin list
+    async function loadAdminList() {
+      try {
+        const response = await fetch('/api/users');
+        const result = await response.json();
+
+        if (result.success && result.users.length > 0) {
+          const tbody = document.getElementById('adminBody');
+          tbody.innerHTML = '';
+          result.users.forEach((user, index) => {
+            const row = document.createElement('tr');
+            const date = new Date(user.created_at).toLocaleDateString('ms-MY');
+            row.innerHTML = `
+              <td>${index + 1}</td>
+              <td>${user.username}</td>
+              <td>${date}</td>
+              <td>
+                ${user.username !== 'admin' ? `<button class="delete-btn" onclick="deleteAdmin('${user.username}', ${user.id})">Delete</button>` : '<span style="color: #999;">-</span>'}
+              </td>
+            `;
+            tbody.appendChild(row);
+          });
+        } else {
+          document.getElementById('adminBody').innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No admins found</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error loading admin list:', error);
+      }
+    }
+
+    // Register new admin
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('newUsername').value.trim();
+      const password = document.getElementById('newPassword').value;
+      const messageDiv = document.getElementById('registerMessage');
+
+      if (username.length < 3) {
+        messageDiv.textContent = 'Username harus minimal 3 karakter';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          messageDiv.textContent = 'Admin baru berhasil didaftar!';
+          messageDiv.className = 'message success';
+          messageDiv.style.display = 'block';
+          document.getElementById('registerForm').reset();
+
+          // Reload admin list after 1 second
+          setTimeout(() => {
+            loadAdminList();
+          }, 1000);
+        } else {
+          messageDiv.textContent = result.message;
+          messageDiv.className = 'message error';
+          messageDiv.style.display = 'block';
+        }
+      } catch (error) {
+        messageDiv.textContent = 'Error registering admin. Please try again.';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+      }
+    });
+
+    // Delete admin
+    async function deleteAdmin(username, userId) {
+      if (username === 'admin') {
+        alert('Cannot delete default admin user');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete admin "${username}"?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/users/${userId}`, {
+          method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('Admin deleted successfully');
+          loadAdminList();
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        alert('Error deleting admin');
+        console.error('Error:', error);
+      }
+    }
+
+    // Logout
+    async function logout() {
+      try {
+        const response = await fetch('/api/logout', {
+          method: 'POST'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          window.location.href = '/';
+        }
+      } catch (error) {
+        console.error('Error logging out:', error);
+      }
+    }
+
+    // Load user info and admin list on page load
+    loadUserInfo();
+    loadAdminList();
+  </script>
+</body>
+</html>

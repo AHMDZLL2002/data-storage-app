@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Data Storage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <div class="navbar">
+      <h2>Data Storage Dashboard</h2>
+      <div class="user-info">
+        <span>Welcome, <strong id="username">User</strong></span>
+        <button class="change-password-btn" onclick="openChangePasswordModal()">🔐 Change Password</button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <div class="dashboard-container">
+      <h1>Dashboard</h1>
+
+      <!-- Menu Boxes -->
+      <div class="menu-boxes">
+        <div class="menu-box" onclick="goToPage('data-entry')">
+          <h3>➕ Input Data</h3>
+          <p>Add new data entries</p>
+        </div>
+        <div class="menu-box" onclick="goToPage('view-data')">
+          <h3>📊 View Data</h3>
+          <p>View all your stored data</p>
+        </div>
+        <div class="menu-box" onclick="goToPage('statistics')">
+          <h3>📈 Statistics</h3>
+          <p>View data statistics</p>
+        </div>
+        <div id="adminBoxContainer" style="display: none;">
+          <div class="menu-box admin-box" onclick="goToPage('admin')">
+            <h3>👨‍💼 Paparan ADMIN</h3>
+            <p>Manage system administrators</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Section -->
+      <div class="data-section" id="dataSection" style="display: none;">
+        <h2>Your Data</h2>
+        <div style="margin-bottom: 20px;">
+          <button class="export-btn export-pdf" onclick="exportData('pdf')">📄 Export PDF</button>
+          <button class="export-btn export-excel" onclick="exportData('excel')">📊 Export Excel</button>
+          <button class="export-btn export-csv" onclick="exportData('csv')">📋 Export CSV</button>
+        </div>
+        <table class="data-table" id="dataTable">
+          <thead>
+            <tr>
+              <th>Tarikh</th>
+              <th>Rujukan</th>
+              <th>Dibayar Kepada</th>
+              <th>Perkara</th>
+              <th>Liabiliti</th>
+              <th>Bayaran</th>
+              <th>Jumlah Bayaran</th>
+              <th>Baki</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="dataBody">
+          </tbody>
+        </table>
+        <div class="empty-message" id="emptyMessage" style="display: none;">
+          No data available. <a href="#" onclick="goToPage('data-entry'); return false;">Add some data</a>
+        </div>
+      </div>
+
+      <!-- Statistics Section -->
+      <div class="data-section" id="statisticsSection" style="display: none;">
+        <h2>Statistics</h2>
+        <div style="padding: 20px;">
+          <p>Total Entries: <strong id="totalEntries">0</strong></p>
+          <p>Categories: <strong id="totalCategories">0</strong></p>
+          <p id="categoryBreakdown" style="margin-top: 20px;"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div id="changePasswordModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeChangePasswordModal()">&times;</span>
+      <h2>Change Password</h2>
+      <form id="changePasswordForm">
+        <div class="form-group">
+          <label for="oldPassword">Old Password:</label>
+          <input type="password" id="oldPassword" name="oldPassword" required>
+        </div>
+        <div class="form-group">
+          <label for="newPassword">New Password:</label>
+          <input type="password" id="newPassword" name="newPassword" required>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password:</label>
+          <input type="password" id="confirmPassword" name="confirmPassword" required>
+        </div>
+        <div id="passwordMessage" class="message"></div>
+        <button type="submit" class="btn">Change Password</button>
+        <button type="button" class="btn btn-cancel" onclick="closeChangePasswordModal()">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Load user info
+    async function loadUserInfo() {
+      try {
+        const response = await fetch('/api/user');
+        const data = await response.json();
+        document.getElementById('username').textContent = data.username;
+        
+        // Show admin box only for admin user
+        if (data.username === 'admin') {
+          document.getElementById('adminBoxContainer').style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      }
+    }
+
+    // Navigate to different sections
+    function goToPage(page) {
+      if (page === 'data-entry') {
+        window.location.href = '/data-entry';
+      } else if (page === 'view-data') {
+        showDataSection();
+      } else if (page === 'statistics') {
+        showStatistics();
+      } else if (page === 'admin') {
+        window.location.href = '/admin';
+      }
+    }
+
+    // Show data section
+    async function showDataSection() {
+      document.getElementById('dataSection').style.display = 'block';
+      document.getElementById('statisticsSection').style.display = 'none';
+      await loadData();
+    }
+
+    // Load data from server
+    async function loadData() {
+      try {
+        const response = await fetch('/api/data');
+        const result = await response.json();
+
+        if (result.success && result.data.length > 0) {
+          const tbody = document.getElementById('dataBody');
+          tbody.innerHTML = '';
+          result.data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${item.tarikh || '-'}</td>
+              <td>${item.rujukan || '-'}</td>
+              <td>${item.dibayar_kepada || '-'}</td>
+              <td>${item.perkara || '-'}</td>
+              <td>${item.liabiliti || '-'}</td>
+              <td>${item.bayaran || '-'}</td>
+              <td>${item.jumlah_bayaran || '-'}</td>
+              <td>${item.baki || '-'}</td>
+              <td><button class="delete-btn" onclick="deleteData(${item.id})">Delete</button></td>
+            `;
+            tbody.appendChild(row);
+          });
+          document.getElementById('emptyMessage').style.display = 'none';
+        } else {
+          document.getElementById('emptyMessage').style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    }
+
+    // Show statistics
+    async function showStatistics() {
+      document.getElementById('dataSection').style.display = 'none';
+      document.getElementById('statisticsSection').style.display = 'block';
+
+      try {
+        const response = await fetch('/api/data');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const data = result.data;
+          document.getElementById('totalEntries').textContent = data.length;
+
+          // Calculate financial statistics
+          let totalBayaran = 0;
+          let totalJumlahBayaran = 0;
+          let totalBaki = 0;
+
+          data.forEach(item => {
+            totalBayaran += parseFloat(item.bayaran) || 0;
+            totalJumlahBayaran += parseFloat(item.jumlah_bayaran) || 0;
+            totalBaki += parseFloat(item.baki) || 0;
+          });
+
+          document.getElementById('totalCategories').textContent = data.length + ' entries';
+
+          // Show financial breakdown
+          let breakdown = `
+            <strong>Financial Summary:</strong>
+            <ul style="margin-top: 10px;">
+              <li>Total Bayaran: RM ${totalBayaran.toFixed(2)}</li>
+              <li>Total Jumlah Bayaran: RM ${totalJumlahBayaran.toFixed(2)}</li>
+              <li>Total Baki: RM ${totalBaki.toFixed(2)}</li>
+            </ul>
+          `;
+          document.getElementById('categoryBreakdown').innerHTML = breakdown;
+        }
+      } catch (error) {
+        console.error('Error loading statistics:', error);
+      }
+    }
+
+    // Delete data
+    async function deleteData(id) {
+      if (!confirm('Are you sure you want to delete this entry?')) return;
+
+      try {
+        const response = await fetch(`/api/data/${id}`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          await loadData();
+        } else {
+          alert('Error deleting data: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting data:', error);
+      }
+    }
+
+    // Logout
+    async function logout() {
+      try {
+        const response = await fetch('/api/logout', {
+          method: 'POST'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          window.location.href = '/';
+        }
+      } catch (error) {
+        console.error('Error logging out:', error);
+      }
+    }
+
+    // Export data
+    function exportData(format) {
+      if (format === 'pdf') {
+        window.location.href = '/api/export/pdf';
+      } else if (format === 'excel') {
+        window.location.href = '/api/export/excel';
+      } else if (format === 'csv') {
+        window.location.href = '/api/export/csv';
+      }
+    }
+
+    // Open change password modal
+    function openChangePasswordModal() {
+      document.getElementById('changePasswordModal').style.display = 'block';
+      document.getElementById('changePasswordForm').reset();
+      document.getElementById('passwordMessage').textContent = '';
+    }
+
+    // Close change password modal
+    function closeChangePasswordModal() {
+      document.getElementById('changePasswordModal').style.display = 'none';
+      document.getElementById('changePasswordForm').reset();
+      document.getElementById('passwordMessage').textContent = '';
+    }
+
+    // Handle change password form submission
+    document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const messageDiv = document.getElementById('passwordMessage');
+
+      if (newPassword !== confirmPassword) {
+        messageDiv.textContent = 'Password baru dan konfirmasi tidak cocok';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+        return;
+      }
+
+      if (newPassword.length < 5) {
+        messageDiv.textContent = 'Password harus minimal 5 karakter';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            oldPassword,
+            newPassword
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          messageDiv.textContent = 'Password berhasil diubah!';
+          messageDiv.className = 'message success';
+          messageDiv.style.display = 'block';
+
+          // Close modal after 2 seconds
+          setTimeout(() => {
+            closeChangePasswordModal();
+          }, 2000);
+        } else {
+          messageDiv.textContent = result.message;
+          messageDiv.className = 'message error';
+          messageDiv.style.display = 'block';
+        }
+      } catch (error) {
+        messageDiv.textContent = 'Error changing password. Please try again.';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+      }
+    });
+
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+      const modal = document.getElementById('changePasswordModal');
+      if (event.target === modal) {
+        closeChangePasswordModal();
+      }
+    };
+
+    // Load user info on page load
+    loadUserInfo();
+  </script>
+</body>
+</html>
