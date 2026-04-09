@@ -10,7 +10,9 @@
 <body>
   <div class="dashboard">
     <div class="navbar">
-      <h2>Data Storage Dashboard</h2>
+      <div class="logo-container">
+        <img src="images/logo-main.png" alt="LOGO" class="navbar-logo">
+      </div>
       <div class="user-info">
         <span>Welcome, <strong id="username">User</strong></span>
         <button class="change-password-btn" onclick="openChangePasswordModal()">🔐 Change Password</button>
@@ -57,6 +59,22 @@
             <button class="menu-item submenu" onclick="switchView('buku-pembangunan')">
               <span class="menu-icon">🏗️</span>
               <span class="menu-text">Pembangunan</span>
+            </button>
+            <button class="menu-item submenu" onclick="switchView('buku-gaji')">
+              <span class="menu-icon">💰</span>
+              <span class="menu-text">Gaji</span>
+            </button>
+            <button class="menu-item submenu" onclick="switchView('buku-operasi')">
+              <span class="menu-icon">⚙️</span>
+              <span class="menu-text">Operasi</span>
+            </button>
+            <button class="menu-item submenu" onclick="switchView('buku-penyelenggaraan')">
+              <span class="menu-icon">🔧</span>
+              <span class="menu-text">Penyelenggaraan</span>
+            </button>
+            <button class="menu-item submenu" onclick="switchView('buku-utiliti')">
+              <span class="menu-icon">💡</span>
+              <span class="menu-text">Utiliti</span>
             </button>
           </div>
 
@@ -223,6 +241,158 @@
           </table>
         </div>
 
+        <!-- Buku Vot - Gaji -->
+        <div id="bukuGajiView" class="view-section" style="display: none;">
+          <div class="view-header">
+            <h1>Buku Vot - Gaji</h1>
+            <div class="view-controls">
+              <select id="monthSelectGaji" onchange="loadBukuVot('gaji')" class="month-select">
+                <option value="">Semua Bulan</option>
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+              </select>
+            </div>
+          </div>
+          <table class="data-table" id="bukuGajiTable">
+            <thead>
+              <tr>
+                <th>Tarikh</th>
+                <th>Rujukan</th>
+                <th>Dibayar Kepada</th>
+                <th>Perkara</th>
+                <th>Bayaran</th>
+                <th>Jumlah Bayaran</th>
+                <th>Baki</th>
+              </tr>
+            </thead>
+            <tbody id="bukuGajiBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Buku Vot - Operasi -->
+        <div id="bukuOperasiView" class="view-section" style="display: none;">
+          <div class="view-header">
+            <h1>Buku Vot - Operasi</h1>
+            <div class="view-controls">
+              <select id="monthSelectOperasi" onchange="loadBukuVot('operasi')" class="month-select">
+                <option value="">Semua Bulan</option>
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+              </select>
+            </div>
+          </div>
+          <table class="data-table" id="bukuOperasiTable">
+            <thead>
+              <tr>
+                <th>Tarikh</th>
+                <th>Rujukan</th>
+                <th>Dibayar Kepada</th>
+                <th>Perkara</th>
+                <th>Bayaran</th>
+                <th>Jumlah Bayaran</th>
+                <th>Baki</th>
+              </tr>
+            </thead>
+            <tbody id="bukuOperasiBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Buku Vot - Penyelenggaraan -->
+        <div id="bukuPenyelenggaraanView" class="view-section" style="display: none;">
+          <div class="view-header">
+            <h1>Buku Vot - Penyelenggaraan</h1>
+            <div class="view-controls">
+              <select id="monthSelectPenyelenggaraan" onchange="loadBukuVot('penyelenggaraan')" class="month-select">
+                <option value="">Semua Bulan</option>
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+              </select>
+            </div>
+          </div>
+          <table class="data-table" id="bukuPenyelenggaraanTable">
+            <thead>
+              <tr>
+                <th>Tarikh</th>
+                <th>Rujukan</th>
+                <th>Dibayar Kepada</th>
+                <th>Perkara</th>
+                <th>Bayaran</th>
+                <th>Jumlah Bayaran</th>
+                <th>Baki</th>
+              </tr>
+            </thead>
+            <tbody id="bukuPenyelenggaraanBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Buku Vot - Utiliti -->
+        <div id="bukuUtilitiView" class="view-section" style="display: none;">
+          <div class="view-header">
+            <h1>Buku Vot - Utiliti</h1>
+            <div class="view-controls">
+              <select id="monthSelectUtiliti" onchange="loadBukuVot('utiliti')" class="month-select">
+                <option value="">Semua Bulan</option>
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+              </select>
+            </div>
+          </div>
+          <table class="data-table" id="bukuUtilitiTable">
+            <thead>
+              <tr>
+                <th>Tarikh</th>
+                <th>Rujukan</th>
+                <th>Dibayar Kepada</th>
+                <th>Perkara</th>
+                <th>Bayaran</th>
+                <th>Jumlah Bayaran</th>
+                <th>Baki</th>
+              </tr>
+            </thead>
+            <tbody id="bukuUtilitiBody"></tbody>
+          </table>
+        </div>
+
         <!-- View Statistik -->
         <div id="statisticsView" class="view-section" style="display: none;">
           <div class="view-header">
@@ -263,6 +433,13 @@
               <p class="stat-value" id="totalBaki">RM 0.00</p>
             </div>
           </div>
+          
+          <div class="category-stats-section">
+            <h2>Statistik Mengikut Kategori Buku Vot</h2>
+            <div id="categoryStats" class="category-stats-container">
+              <!-- Category statistics will be populated here -->
+            </div>
+          </div>
         </div>
 
         <!-- View Data -->
@@ -270,6 +447,15 @@
           <div class="view-header">
             <h1>Paparan Data</h1>
             <div class="view-controls">
+              <select id="categorySelectData" onchange="loadData()" class="month-select" style="margin-right: 10px;">
+                <option value="">Semua Kategori</option>
+                <option value="perbekalan">Perbekalan</option>
+                <option value="pembangunan">Pembangunan</option>
+                <option value="gaji">Gaji</option>
+                <option value="operasi">Operasi</option>
+                <option value="penyelenggaraan">Penyelenggaraan</option>
+                <option value="utiliti">Utiliti</option>
+              </select>
               <select id="monthSelectData" onchange="loadData()" class="month-select">
                 <option value="">Semua Bulan</option>
                 <option value="01">Januari</option>
@@ -300,6 +486,7 @@
                 <th>Rujukan</th>
                 <th>Dibayar Kepada</th>
                 <th>Perkara</th>
+                <th>Kategori</th>
                 <th>Liabiliti</th>
                 <th>Bayaran</th>
                 <th>Jumlah Bayaran</th>
@@ -423,6 +610,22 @@
           document.getElementById('bukuPembangunanView').style.display = 'block';
           loadBukuVot('pembangunan');
           break;
+        case 'buku-gaji':
+          document.getElementById('bukuGajiView').style.display = 'block';
+          loadBukuVot('gaji');
+          break;
+        case 'buku-operasi':
+          document.getElementById('bukuOperasiView').style.display = 'block';
+          loadBukuVot('operasi');
+          break;
+        case 'buku-penyelenggaraan':
+          document.getElementById('bukuPenyelenggaraanView').style.display = 'block';
+          loadBukuVot('penyelenggaraan');
+          break;
+        case 'buku-utiliti':
+          document.getElementById('bukuUtilitiView').style.display = 'block';
+          loadBukuVot('utiliti');
+          break;
         case 'statistics':
           document.getElementById('statisticsView').style.display = 'block';
           loadStatistics();
@@ -460,16 +663,18 @@
         const result = await response.json();
 
         if (result.success && result.data) {
-          const month = category === 'perbekalan' ? 
-            getSelectedMonth('monthSelectPerbekalan') : 
-            getSelectedMonth('monthSelectPembangunan');
+          // Filter data by category first
+          const categoryData = result.data.filter(item => item.category === category);
           
-          let filteredData = result.data;
+          const monthSelectId = `monthSelect${category.charAt(0).toUpperCase() + category.slice(1)}`;
+          const month = getSelectedMonth(monthSelectId);
+          
+          let filteredData = categoryData;
           if (month) {
             filteredData = filterDataByMonth(filteredData, month);
           }
 
-          const bodyId = category === 'perbekalan' ? 'bukuPerbekalanBody' : 'bukuPembangunanBody';
+          const bodyId = `buku${category.charAt(0).toUpperCase() + category.slice(1)}Body`;
           const tbody = document.getElementById(bodyId);
           tbody.innerHTML = '';
 
@@ -510,6 +715,7 @@
             data = filterDataByMonth(data, month);
           }
 
+          // Overall statistics
           document.getElementById('totalEntries').textContent = data.length;
 
           let totalBayaran = 0;
@@ -525,6 +731,49 @@
           document.getElementById('totalBayaran').textContent = 'RM ' + totalBayaran.toFixed(2);
           document.getElementById('totalJumlahBayaran').textContent = 'RM ' + totalJumlahBayaran.toFixed(2);
           document.getElementById('totalBaki').textContent = 'RM ' + totalBaki.toFixed(2);
+
+          // Category-specific statistics
+          const categories = ['perbekalan', 'pembangunan', 'gaji', 'operasi', 'penyelenggaraan', 'utiliti'];
+          const categoryStatsContainer = document.getElementById('categoryStats');
+          categoryStatsContainer.innerHTML = '';
+
+          categories.forEach(category => {
+            const categoryData = data.filter(item => item.category === category);
+            if (categoryData.length > 0) {
+              let catBayaran = 0;
+              let catJumlahBayaran = 0;
+              let catBaki = 0;
+
+              categoryData.forEach(item => {
+                catBayaran += parseFloat(item.bayaran) || 0;
+                catJumlahBayaran += parseFloat(item.jumlah_bayaran) || 0;
+                catBaki += parseFloat(item.baki) || 0;
+              });
+
+              const categoryCard = document.createElement('div');
+              categoryCard.className = 'stat-card category-stat';
+              categoryCard.innerHTML = `
+                <h3>${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
+                <div class="stat-item">
+                  <span class="stat-label">Entries:</span>
+                  <span class="stat-value">${categoryData.length}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Total Bayaran:</span>
+                  <span class="stat-value">RM ${catBayaran.toFixed(2)}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Total Jumlah Bayaran:</span>
+                  <span class="stat-value">RM ${catJumlahBayaran.toFixed(2)}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Total Baki:</span>
+                  <span class="stat-value">RM ${catBaki.toFixed(2)}</span>
+                </div>
+              `;
+              categoryStatsContainer.appendChild(categoryCard);
+            }
+          });
         }
       } catch (error) {
         console.error('Error loading statistics:', error);
@@ -539,8 +788,15 @@
 
         if (result.success && result.data.length > 0) {
           const month = getSelectedMonth('monthSelectData');
+          const category = document.getElementById('categorySelectData').value;
           let data = result.data;
           
+          // Filter by category first
+          if (category) {
+            data = data.filter(item => item.category === category);
+          }
+          
+          // Then filter by month
           if (month) {
             data = filterDataByMonth(data, month);
           }
@@ -555,6 +811,7 @@
               <td>${item.rujukan || '-'}</td>
               <td>${item.dibayar_kepada || '-'}</td>
               <td>${item.perkara || '-'}</td>
+              <td>${item.category || '-'}</td>
               <td>${item.liabiliti || '-'}</td>
               <td>RM ${parseFloat(item.bayaran || 0).toFixed(2)}</td>
               <td>RM ${parseFloat(item.jumlah_bayaran || 0).toFixed(2)}</td>

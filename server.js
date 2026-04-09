@@ -85,15 +85,15 @@ app.get('/api/data', checkAuth, (req, res) => {
 
 // API: Save data
 app.post('/api/data', checkAuth, (req, res) => {
-  const { tarikh, rujukan, dibayar_kepada, perkara, liabiliti, bayaran, jumlah_bayaran, baki } = req.body;
+  const { category, tarikh, rujukan, dibayar_kepada, perkara, liabiliti, bayaran, jumlah_bayaran, baki } = req.body;
 
   if (!tarikh || !perkara) {
     return res.json({ success: false, message: 'Tarikh dan Perkara diperlukan' });
   }
 
   db.run(
-    `INSERT INTO data (user_id, tarikh, rujukan, dibayar_kepada, perkara, liabiliti, bayaran, jumlah_bayaran, baki) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [req.session.userId, tarikh, rujukan, dibayar_kepada, perkara, liabiliti, bayaran || 0, jumlah_bayaran || 0, baki || 0],
+    `INSERT INTO data (user_id, category, tarikh, rujukan, dibayar_kepada, perkara, liabiliti, bayaran, jumlah_bayaran, baki) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [req.session.userId, category || 'Perbekalan', tarikh, rujukan, dibayar_kepada, perkara, liabiliti, bayaran || 0, jumlah_bayaran || 0, baki || 0],
     function(err) {
       if (err) {
         console.error(err);
@@ -223,6 +223,7 @@ app.get('/api/user', checkAuth, (req, res) => {
 // Export to PDF
 app.get('/api/export/pdf', checkAuth, (req, res) => {
   const monthFilter = req.query.month;
+  const categoryFilter = req.query.category;
   let query = `SELECT * FROM data WHERE user_id = ? ORDER BY created_at DESC`;
   
   db.all(query, [req.session.userId], (err, rows) => {
@@ -239,90 +240,196 @@ app.get('/api/export/pdf', checkAuth, (req, res) => {
       });
     }
 
-    const doc = new PDFDocument({ margin: 30, size: 'A4', bufferPages: true });
+    // Filter by category if provided
+    if (categoryFilter && categoryFilter !== 'all') {
+      rows = rows.filter(row => row.category === categoryFilter);
+    }
+
+    const doc = new PDFDocument({ margin: 50, size: 'A4', bufferPages: true });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="data-export.pdf"');
+    res.setHeader('Content-Disposition', 'attachment; filename="data-report.pdf"');
 
     doc.pipe(res);
     
-    // Title
-    doc.fontSize(16).font('Helvetica-Bold').text('Data Report', { align: 'center' });
-    doc.fontSize(10).font('Helvetica').text(`Generated: ${new Date().toLocaleString('ms-MY')}`, { align: 'center' });
-    doc.moveDown();
+    // Professional Header
+    doc.rect(0, 0, doc.page.width, 100).fill('#667eea');
+    
+    // Logo/Title Area
+    doc.fillColor('white').fontSize(24).font('Helvetica-Bold')
+       .text('LOGO', 50, 30, { align: 'left' });
+    
+    doc.fillColor('white').fontSize(16).font('Helvetica')
+       .text('Government Data Management System', 50, 60);
+    
+    // Report Title
+    doc.fillColor('#333').fontSize(18).font('Helvetica-Bold')
+       .text('Financial Data Report', 0, 120, { align: 'center' });
+    
+    // Report Info
+    const currentDate = new Date().toLocaleDateString('ms-MY');
+    const totalRecords = rows.length;
+    doc.fillColor('#666').fontSize(10).font('Helvetica')
+       .text(`Generated: ${currentDate} | Total Records: ${totalRecords}`, 0, 145, { align: 'center' });
+    
+    if (monthFilter) {
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Disember'];
+      const monthIndex = parseInt(monthFilter) - 1;
+      doc.text(`Month Filter: ${monthNames[monthIndex]}`, 0, 160, { align: 'center' });
+    }
+    
+    doc.moveDown(2);
 
-    // Table configuration
+    // Table configuration with better spacing
     const columns = [
-      { key: 'tarikh', label: 'Tarikh', width: 50 },
-      { key: 'rujukan', label: 'Rujukan', width: 45 },
-      { key: 'dibayar_kepada', label: 'Dibayar Kepada', width: 55 },
-      { key: 'perkara', label: 'Perkara', width: 50 },
-      { key: 'liabiliti', label: 'Liabiliti', width: 45 },
-      { key: 'bayaran', label: 'Bayaran', width: 40 },
-      { key: 'jumlah_bayaran', label: 'Jumlah', width: 40 },
-      { key: 'baki', label: 'Baki', width: 40 }
+      { key: 'tarikh', label: 'Tarikh', width: 60 },
+      { key: 'rujukan', label: 'Rujukan', width: 50 },
+      { key: 'dibayar_kepada', label: 'Dibayar Kepada', width: 70 },
+      { key: 'perkara', label: 'Perkara', width: 60 },
+      { key: 'category', label: 'Kategori', width: 50 },
+      { key: 'liabiliti', label: 'Liabiliti', width: 50 },
+      { key: 'bayaran', label: 'Bayaran (RM)', width: 50 },
+      { key: 'jumlah_bayaran', label: 'Jumlah (RM)', width: 50 },
+      { key: 'baki', label: 'Baki (RM)', width: 45 }
     ];
 
-    const startX = 30;
-    const startY = doc.y;
-    const rowHeight = 25;
-    const cellPadding = 4;
+    const startX = 50;
+    let startY = doc.y;
+    const rowHeight = 20;
+    const cellPadding = 5;
     let currentY = startY;
 
     // Calculate total width
     const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
 
-    // Draw header
-    doc.font('Helvetica-Bold').fontSize(8);
+    // Draw header with professional styling
+    doc.fillColor('#667eea').rect(startX, currentY, totalWidth, rowHeight).fill();
+    doc.fillColor('white').font('Helvetica-Bold').fontSize(8);
     let xPos = startX;
 
-    // Draw header boxes
     columns.forEach((col) => {
-      doc.rect(xPos, currentY, col.width, rowHeight).stroke();
       doc.text(col.label, xPos + cellPadding, currentY + cellPadding, {
         width: col.width - cellPadding * 2,
         height: rowHeight - cellPadding * 2,
-        align: 'left',
-        valign: 'top'
+        align: 'center',
+        valign: 'center'
       });
       xPos += col.width;
     });
 
     currentY += rowHeight;
 
-    // Draw data rows
+    // Draw data rows with alternating colors
     doc.font('Helvetica').fontSize(7);
+    let rowCount = 0;
+    
     rows.forEach((row) => {
       // Check if we need a new page
-      if (currentY + rowHeight > doc.page.height - 30) {
+      if (currentY + rowHeight > doc.page.height - 80) {
+        // Add footer to current page
+        addPageFooter(doc);
         doc.addPage();
-        currentY = 30;
+        currentY = 50;
+        
+        // Redraw header on new page
+        doc.fillColor('#667eea').rect(startX, currentY, totalWidth, rowHeight).fill();
+        doc.fillColor('white').font('Helvetica-Bold').fontSize(8);
+        xPos = startX;
+        columns.forEach((col) => {
+          doc.text(col.label, xPos + cellPadding, currentY + cellPadding, {
+            width: col.width - cellPadding * 2,
+            height: rowHeight - cellPadding * 2,
+            align: 'center',
+            valign: 'center'
+          });
+          xPos += col.width;
+        });
+        currentY += rowHeight;
       }
 
+      // Alternate row colors
+      const fillColor = rowCount % 2 === 0 ? '#f9f9f9' : 'white';
+      doc.fillColor(fillColor).rect(startX, currentY, totalWidth, rowHeight).fill();
+      
+      // Draw cell borders
+      doc.strokeColor('#ddd').lineWidth(0.5);
       xPos = startX;
       columns.forEach((col) => {
-        const value = String(row[col.key] || '-').substring(0, 20);
         doc.rect(xPos, currentY, col.width, rowHeight).stroke();
-        doc.text(value, xPos + cellPadding, currentY + cellPadding, {
+        xPos += col.width;
+      });
+
+      // Fill data
+      doc.fillColor('#333');
+      xPos = startX;
+      columns.forEach((col) => {
+        let cellValue = row[col.key] || '-';
+        if (col.key.includes('bayaran') || col.key === 'baki') {
+          cellValue = cellValue !== '-' ? `RM ${parseFloat(cellValue).toFixed(2)}` : '-';
+        }
+        doc.text(cellValue, xPos + cellPadding, currentY + cellPadding, {
           width: col.width - cellPadding * 2,
           height: rowHeight - cellPadding * 2,
-          align: 'left',
-          valign: 'top'
+          align: col.key.includes('bayaran') || col.key === 'baki' ? 'right' : 'left',
+          valign: 'center'
         });
         xPos += col.width;
       });
+
       currentY += rowHeight;
+      rowCount++;
     });
 
-    // Add footer
-    doc.fontSize(8).text(`Total Records: ${rows.length}`, startX, doc.page.height - 20);
+    // Add summary section
+    if (rows.length > 0) {
+      currentY += 20;
+      
+      // Summary box
+      doc.strokeColor('#667eea').lineWidth(1)
+         .rect(startX, currentY, totalWidth, 60).stroke();
+      
+      doc.fillColor('#667eea').font('Helvetica-Bold').fontSize(10)
+         .text('SUMMARY', startX + 10, currentY + 10);
+      
+      let totalBayaran = 0;
+      let totalJumlahBayaran = 0;
+      let totalBaki = 0;
+      
+      rows.forEach(row => {
+        totalBayaran += parseFloat(row.bayaran) || 0;
+        totalJumlahBayaran += parseFloat(row.jumlah_bayaran) || 0;
+        totalBaki += parseFloat(row.baki) || 0;
+      });
+      
+      doc.fillColor('#333').font('Helvetica').fontSize(8);
+      doc.text(`Total Bayaran: RM ${totalBayaran.toFixed(2)}`, startX + 10, currentY + 25);
+      doc.text(`Total Jumlah Bayaran: RM ${totalJumlahBayaran.toFixed(2)}`, startX + 200, currentY + 25);
+      doc.text(`Total Baki: RM ${totalBaki.toFixed(2)}`, startX + 10, currentY + 40);
+      doc.text(`Record Count: ${rows.length}`, startX + 200, currentY + 40);
+    }
 
+    // Add footer to last page
+    addPageFooter(doc);
+    
     doc.end();
   });
 });
 
+// Helper function to add page footer
+function addPageFooter(doc) {
+  const pageNumber = doc.pageNumber || 1;
+  const totalPages = doc.bufferedPageRange().count || 1;
+  
+  doc.fillColor('#999').fontSize(8).font('Helvetica')
+     .text(`Page ${pageNumber} of ${totalPages}`, 50, doc.page.height - 30, { align: 'center' });
+  
+  doc.text('Generated by Government Data Management System', 50, doc.page.height - 20, { align: 'center' });
+}
+
 // Export to Excel
 app.get('/api/export/excel', checkAuth, (req, res) => {
   const monthFilter = req.query.month;
+  const categoryFilter = req.query.category;
   
   db.all(`SELECT * FROM data WHERE user_id = ? ORDER BY created_at DESC`, [req.session.userId], (err, rows) => {
     if (err || !rows) {
@@ -338,24 +445,60 @@ app.get('/api/export/excel', checkAuth, (req, res) => {
       });
     }
 
-    // Transform data
+    // Filter by category if provided
+    if (categoryFilter && categoryFilter !== 'all') {
+      rows = rows.filter(row => row.category === categoryFilter);
+    }
+
+    // Transform data with professional formatting
     const excelData = rows.map(row => ({
       'Tarikh': row.tarikh || '-',
       'Rujukan': row.rujukan || '-',
       'Dibayar Kepada': row.dibayar_kepada || '-',
       'Perkara': row.perkara || '-',
+      'Kategori': row.category || '-',
       'Liabiliti': row.liabiliti || '-',
-      'Bayaran': row.bayaran || '-',
-      'Jumlah Bayaran': row.jumlah_bayaran || '-',
-      'Baki': row.baki || '-'
+      'Bayaran (RM)': row.bayaran ? parseFloat(row.bayaran).toFixed(2) : '-',
+      'Jumlah Bayaran (RM)': row.jumlah_bayaran ? parseFloat(row.jumlah_bayaran).toFixed(2) : '-',
+      'Baki (RM)': row.baki ? parseFloat(row.baki).toFixed(2) : '-'
     }));
 
     const ws = XLSX.utils.json_to_sheet(excelData);
+    
+    // Set column widths for better readability
+    const colWidths = [
+      { wch: 12 }, // Tarikh
+      { wch: 15 }, // Rujukan
+      { wch: 20 }, // Dibayar Kepada
+      { wch: 25 }, // Perkara
+      { wch: 15 }, // Kategori
+      { wch: 15 }, // Liabiliti
+      { wch: 15 }, // Bayaran
+      { wch: 18 }, // Jumlah Bayaran
+      { wch: 12 }  // Baki
+    ];
+    ws['!cols'] = colWidths;
+
     const wb = XLSX.utils.book_new();
+    
+    // Add a title sheet
+    const titleData = [
+      { 'A': 'LOGO - Government Data Management System' },
+      { 'A': 'Financial Data Export Report' },
+      { 'A': `Generated: ${new Date().toLocaleDateString('ms-MY')} ${new Date().toLocaleTimeString('ms-MY')}` },
+      { 'A': `Total Records: ${rows.length}` },
+      { 'A': monthFilter ? `Month Filter: ${new Date(2024, parseInt(monthFilter) - 1).toLocaleDateString('ms-MY', { month: 'long' })}` : 'All Months' },
+      { 'A': '' },
+      { 'A': 'Data Sheet: Click on "Data" tab below' }
+    ];
+    
+    const titleWs = XLSX.utils.json_to_sheet(titleData, { header: ['A'], skipHeader: true });
+    XLSX.utils.book_append_sheet(wb, titleWs, 'Report Info');
+    
     XLSX.utils.book_append_sheet(wb, ws, 'Data');
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="data-export.xlsx"');
+    res.setHeader('Content-Disposition', 'attachment; filename="financial-report.xlsx"');
     XLSX.write(wb, { out: res, type: 'buffer' });
   });
 });
@@ -363,6 +506,7 @@ app.get('/api/export/excel', checkAuth, (req, res) => {
 // Export to CSV
 app.get('/api/export/csv', checkAuth, (req, res) => {
   const monthFilter = req.query.month;
+  const categoryFilter = req.query.category;
   
   db.all(`SELECT * FROM data WHERE user_id = ? ORDER BY created_at DESC`, [req.session.userId], (err, rows) => {
     if (err || !rows) {
@@ -378,13 +522,28 @@ app.get('/api/export/csv', checkAuth, (req, res) => {
       });
     }
 
-    let csv = 'Tarikh,Rujukan,Dibayar Kepada,Perkara,Liabiliti,Bayaran,Jumlah Bayaran,Baki\n';
+    // Filter by category if provided
+    if (categoryFilter && categoryFilter !== 'all') {
+      rows = rows.filter(row => row.category === categoryFilter);
+    }
+
+    // Professional CSV header with category
+    let csv = '# LOGO - Government Data Management System\n';
+    csv += `# Financial Data Export Report\n`;
+    csv += `# Generated: ${new Date().toLocaleDateString('ms-MY')} ${new Date().toLocaleTimeString('ms-MY')}\n`;
+    csv += `# Total Records: ${rows.length}\n`;
+    if (monthFilter) {
+      csv += `# Month Filter: ${new Date(2024, parseInt(monthFilter) - 1).toLocaleDateString('ms-MY', { month: 'long' })}\n`;
+    }
+    csv += '\n';
+    csv += 'Tarikh,Rujukan,Dibayar Kepada,Perkara,Kategori,Liabiliti,Bayaran (RM),Jumlah Bayaran (RM),Baki (RM)\n';
+    
     rows.forEach(row => {
-      csv += `"${row.tarikh || ''}","${row.rujukan || ''}","${row.dibayar_kepada || ''}","${row.perkara || ''}","${row.liabiliti || ''}","${row.bayaran || ''}","${row.jumlah_bayaran || ''}","${row.baki || ''}"\n`;
+      csv += `"${row.tarikh || ''}","${row.rujukan || ''}","${row.dibayar_kepada || ''}","${row.perkara || ''}","${row.category || ''}","${row.liabiliti || ''}","${row.bayaran ? parseFloat(row.bayaran).toFixed(2) : ''}","${row.jumlah_bayaran ? parseFloat(row.jumlah_bayaran).toFixed(2) : ''}","${row.baki ? parseFloat(row.baki).toFixed(2) : ''}"\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="data-export.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="financial-report.csv"');
     res.send(csv);
   });
 });

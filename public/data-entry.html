@@ -19,49 +19,71 @@
     <a href="/dashboard" class="back-link">← Back to Dashboard</a>
 
     <div class="data-entry-container">
-      <h1>Enter New Data</h1>
-      <form id="dataForm">
-        <div class="form-group">
-          <label for="tarikh">Tarikh (Date) *</label>
-          <input type="date" id="tarikh" name="tarikh" required>
+      <div class="data-entry-header">
+        <h1>📝 Masukkan Data Baru</h1>
+        <p class="data-entry-subtitle">Isi maklumat transaksi dengan lengkap dan tepat</p>
+      </div>
+
+      <form id="dataForm" class="data-entry-form">
+        <!-- Transaction Details -->
+        <div class="form-section">
+          <h3>📋 Maklumat Transaksi</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tarikh">📅 Tarikh (Date) *</label>
+              <input type="date" id="tarikh" name="tarikh" required>
+            </div>
+            <div class="form-group">
+              <label for="rujukan">🔢 Rujukan (Reference)</label>
+              <input type="text" id="rujukan" name="rujukan" placeholder="e.g. INV-2024-001">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="dibayar_kepada">👤 Dibayar Kepada (Paid To)</label>
+            <input type="text" id="dibayar_kepada" name="dibayar_kepada" placeholder="Nama penerima">
+          </div>
+
+          <div class="form-group">
+            <label for="perkara">📝 Perkara (Subject/Matter) *</label>
+            <textarea id="perkara" name="perkara" required placeholder="Penerangan transaksi" rows="3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="liabiliti">⚖️ Liabiliti (Liability)</label>
+            <input type="text" id="liabiliti" name="liabiliti" placeholder="Butiran liabiliti">
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="rujukan">Rujukan (Reference)</label>
-          <input type="text" id="rujukan" name="rujukan" placeholder="e.g. INV-2024-001">
+        <!-- Financial Information -->
+        <div class="form-section">
+          <h3>💰 Maklumat Kewangan</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bayaran">💵 Bayaran (Payment)</label>
+              <input type="number" id="bayaran" name="bayaran" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label for="jumlah_bayaran">🧮 Jumlah Bayaran (Total Payment)</label>
+              <input type="number" id="jumlah_bayaran" name="jumlah_bayaran" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label for="baki">⚖️ Baki (Balance)</label>
+              <input type="number" id="baki" name="baki" step="0.01" min="0" placeholder="0.00">
+            </div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="dibayar_kepada">Dibayar Kepada (Paid To)</label>
-          <input type="text" id="dibayar_kepada" name="dibayar_kepada" placeholder="Recipient name">
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span class="btn-icon">💾</span>
+            Simpan Data
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="resetForm()">
+            <span class="btn-icon">🔄</span>
+            Reset
+          </button>
         </div>
-
-        <div class="form-group">
-          <label for="perkara">Perkara (Subject/Matter) *</label>
-          <input type="text" id="perkara" name="perkara" required placeholder="Description of transaction">
-        </div>
-
-        <div class="form-group">
-          <label for="liabiliti">Liabiliti (Liability)</label>
-          <input type="text" id="liabiliti" name="liabiliti" placeholder="Liability details">
-        </div>
-
-        <div class="form-group">
-          <label for="bayaran">Bayaran (Payment)</label>
-          <input type="number" id="bayaran" name="bayaran" step="0.01" min="0" placeholder="0.00">
-        </div>
-
-        <div class="form-group">
-          <label for="jumlah_bayaran">Jumlah Bayaran (Total Payment)</label>
-          <input type="number" id="jumlah_bayaran" name="jumlah_bayaran" step="0.01" min="0" placeholder="0.00">
-        </div>
-
-        <div class="form-group">
-          <label for="baki">Baki (Balance)</label>
-          <input type="number" id="baki" name="baki" step="0.01" min="0" placeholder="0.00">
-        </div>
-
-        <button type="submit" class="btn">Save Data</button>
         <div id="message" class="message"></div>
       </form>
     </div>
@@ -79,10 +101,24 @@
       }
     }
 
+    // Category selection - removed, using default category
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set default category (can be changed later if needed)
+      // For now, all new entries will be categorized as 'Perbekalan' by default
+    });
+
+    // Reset form function
+    function resetForm() {
+      document.getElementById('dataForm').reset();
+      // Clear message
+      document.getElementById('message').innerHTML = '';
+    }
+
     // Handle form submission
     document.getElementById('dataForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const category = 'Perbekalan'; // Default category since selection was removed
       const tarikh = document.getElementById('tarikh').value;
       const rujukan = document.getElementById('rujukan').value;
       const dibayar_kepada = document.getElementById('dibayar_kepada').value;
@@ -93,6 +129,19 @@
       const baki = document.getElementById('baki').value;
       const messageDiv = document.getElementById('message');
 
+      if (!tarikh || !perkara) {
+        messageDiv.textContent = 'Sila isi Tarikh dan Perkara';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+        return;
+      }
+
+      // Show loading state
+      const submitBtn = document.querySelector('#dataForm button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<span class="loading-spinner"></span> Menyimpan...';
+      submitBtn.disabled = true;
+
       try {
         const response = await fetch('/api/data', {
           method: 'POST',
@@ -100,6 +149,7 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            category,
             tarikh,
             rujukan,
             dibayar_kepada,
@@ -114,26 +164,28 @@
         const result = await response.json();
 
         if (result.success) {
-          messageDiv.textContent = 'Data saved successfully!';
+          messageDiv.textContent = '✅ Data berjaya disimpan!';
           messageDiv.className = 'message success';
           messageDiv.style.display = 'block';
 
-          // Clear form
-          document.getElementById('dataForm').reset();
-
-          // Redirect to dashboard after 2 seconds
+          // Reset form after 2 seconds
           setTimeout(() => {
-            window.location.href = '/dashboard';
+            resetForm();
           }, 2000);
         } else {
-          messageDiv.textContent = result.message;
+          messageDiv.textContent = result.message || '❌ Ralat menyimpan data';
           messageDiv.className = 'message error';
           messageDiv.style.display = 'block';
         }
       } catch (error) {
-        messageDiv.textContent = 'An error occurred. Please try again.';
+        console.error('Error saving data:', error);
+        messageDiv.textContent = '❌ Ralat menyimpan data. Sila cuba lagi.';
         messageDiv.className = 'message error';
         messageDiv.style.display = 'block';
+      } finally {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
       }
     });
 
@@ -153,7 +205,7 @@
       }
     }
 
-    // Load user info on page load
+    // Initialize
     loadUserInfo();
   </script>
 </body>

@@ -24,11 +24,12 @@ db.serialize(() => {
   // Drop old data table if it exists (migration)
   db.run(`DROP TABLE IF EXISTS data`);
 
-  // Data table with transaction structure
+  // Data table with transaction structure and category
   db.run(`
     CREATE TABLE IF NOT EXISTS data (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
+      category TEXT DEFAULT 'Perbekalan',
       tarikh TEXT NOT NULL,
       rujukan TEXT,
       dibayar_kepada TEXT,
