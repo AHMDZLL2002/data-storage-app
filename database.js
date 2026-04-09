@@ -42,6 +42,26 @@ db.serialize(() => {
     )
   `);
 
+  // Notices table for admin-to-all-users notifications
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      category TEXT DEFAULT 'Pengumuman',
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create indexes for better performance
+  db.run(`CREATE INDEX IF NOT EXISTS idx_notices_created_at ON notices(created_at DESC)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_notices_created_by ON notices(created_by)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_data_user_id ON data(user_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_data_created_at ON data(created_at DESC)`);
+
   // Insert default user if not exists
   db.get(`SELECT * FROM users WHERE username = ?`, ['admin'], (err, row) => {
     if (!row) {

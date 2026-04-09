@@ -10,7 +10,7 @@ Buka command prompt di folder project:
 git init
 git add .
 git commit -m "Upload Data Storage App"
-git remote add origin https://github.com/USERNAME/data-storage-app.git
+git remote add origin https://github.com/AHMDZLL2002/data-storage-app.git
 git branch -M main
 git push -u origin main
 ```

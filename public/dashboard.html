@@ -43,6 +43,11 @@
             <span class="menu-text">INBOX</span>
           </button>
 
+          <button class="menu-item" onclick="switchView('register-bill')">
+            <span class="menu-icon">📋</span>
+            <span class="menu-text">Daftar Bill</span>
+          </button>
+
           <div class="menu-section">
             <div class="menu-section-title">Buku Vot</div>
             <button class="menu-item submenu" onclick="switchView('buku-perbekalan')">
@@ -78,9 +83,61 @@
       <main class="content-area">
         <!-- INBOX View -->
         <div id="inboxView" class="view-section" style="display: none;">
-          <h1>INBOX</h1>
+          <h1>📨 INBOX - Notis dan Pengumuman</h1>
           <div class="inbox-container">
-            <p style="text-align: center; color: #999; padding: 40px;">No messages</p>
+            <table class="data-table" id="inboxTable">
+              <thead>
+                <tr>
+                  <th>Tajuk</th>
+                  <th>Kategori</th>
+                  <th>Daripada</th>
+                  <th>Tarikh</th>
+                </tr>
+              </thead>
+              <tbody id="inboxBody">
+                <tr>
+                  <td colspan="4" style="text-align: center; padding: 20px;">Memuatkan...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Daftar Bill - Register Bill -->
+        <div id="registerBillView" class="view-section" style="display: none;">
+          <h1>📋 Daftar Bill</h1>
+          <p style="color: #666; margin-bottom: 30px;">Pilih kategori bill untuk mendaftar transaksi baru</p>
+          <div class="menu-boxes">
+            <div class="menu-box" onclick="registerBill('Perbekalan')">
+              <div style="font-size: 40px; margin-bottom: 10px;">📦</div>
+              <h3>Perbekalan</h3>
+              <p>Daftar Bill Perbekalan</p>
+            </div>
+            <div class="menu-box" onclick="registerBill('Pembangunan')">
+              <div style="font-size: 40px; margin-bottom: 10px;">🏗️</div>
+              <h3>Pembangunan</h3>
+              <p>Daftar Bill Pembangunan</p>
+            </div>
+            <div class="menu-box" onclick="registerBill('Gaji')">
+              <div style="font-size: 40px; margin-bottom: 10px;">💰</div>
+              <h3>Gaji</h3>
+              <p>Daftar Bill Gaji</p>
+            </div>
+            <div class="menu-box" onclick="registerBill('Operasi')">
+              <div style="font-size: 40px; margin-bottom: 10px;">⚙️</div>
+              <h3>Operasi</h3>
+              <p>Daftar Bill Operasi</p>
+            </div>
+            <div class="menu-box" onclick="registerBill('Penyelenggaraan')">
+              <div style="font-size: 40px; margin-bottom: 10px;">🔧</div>
+              <h3>Penyelenggaraan</h3>
+              <p>Daftar Bill Penyelenggaraan</p>
+            </div>
+            <div class="menu-box" onclick="registerBill('Utiliti')">
+              <div style="font-size: 40px; margin-bottom: 10px;">💡</div>
+              <h3>Utiliti</h3>
+              <p>Daftar Bill Utiliti</p>
+            </div>
           </div>
         </div>
 
@@ -347,6 +404,10 @@
       switch(view) {
         case 'inbox':
           document.getElementById('inboxView').style.display = 'block';
+          loadNotices();
+          break;
+        case 'register-bill':
+          document.getElementById('registerBillView').style.display = 'block';
           break;
         case 'buku-perbekalan':
           document.getElementById('bukuPerbekalanView').style.display = 'block';
@@ -505,6 +566,56 @@
       }
     }
 
+    // Load notices for INBOX with loading indicator
+    async function loadNotices() {
+      const tbody = document.getElementById('inboxBody');
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;"><div class="loading-spinner"></div> Memuatkan notis...</td></tr>';
+
+      console.log('Loading notices for INBOX');
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+        console.log('Making API call to /api/notices');
+        const response = await fetch('/api/notices', {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        clearTimeout(timeoutId);
+
+        console.log('API response status:', response.status);
+        const result = await response.json();
+        console.log('API response:', result);
+
+        if (result.success && result.notices.length > 0) {
+          tbody.innerHTML = '';
+          result.notices.forEach(notice => {
+            const row = document.createElement('tr');
+            const date = new Date(notice.created_at).toLocaleDateString('ms-MY') + ' ' + new Date(notice.created_at).toLocaleTimeString('ms-MY');
+            row.innerHTML = `
+              <td><strong>${notice.title}</strong><br><small>${notice.content.substring(0, 100)}${notice.content.length > 100 ? '...' : ''}</small></td>
+              <td><span class="category-badge">${notice.category}</span></td>
+              <td>${notice.username}</td>
+              <td>${date}</td>
+            `;
+            tbody.appendChild(row);
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Tiada notis pada masa ini</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error loading notices:', error);
+        if (error.name === 'AbortError') {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #f44336;">⏱️ Masa tamat - Sila cuba lagi</td></tr>';
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #f44336;">❌ Ralat memuatkan notis</td></tr>';
+        }
+      }
+    }
+
     // Delete data
     async function deleteData(id) {
       if (!confirm('Are you sure you want to delete this entry?')) return;
@@ -644,6 +755,14 @@
     // Initialize
     updateMonthSelects();
     loadUserInfo();
+
+    // Register bill - redirect to data entry with category
+    function registerBill(category) {
+      // Store the selected bill category in sessionStorage
+      sessionStorage.setItem('billCategory', category);
+      // Redirect to data entry page
+      window.location.href = '/data-entry';
+    }
   </script>
 </body>
 </html>

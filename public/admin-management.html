@@ -16,14 +16,61 @@
       </div>
     </div>
 
-    <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+    <button class="back-btn" onclick="window.location.href='/dashboard'">← Back to Dashboard</button>
 
     <div class="dashboard-container">
-      <h1>Paparan ADMIN - User Management</h1>
+      <h1>Paparan ADMIN</h1>
+
+      <!-- Upload Notice Section -->
+      <div class="admin-section">
+        <h2>📤 Muatnaik Notis/Nota kepada Semua Pengguna</h2>
+        <form id="noticeForm">
+          <div class="form-group">
+            <label for="noticeTitle">Tajuk Notis (diperlukan):</label>
+            <input type="text" id="noticeTitle" name="noticeTitle" placeholder="e.g., Pengumuman Penting" required>
+          </div>
+          <div class="form-group">
+            <label for="noticeContent">Kandungan Notis (diperlukan):</label>
+            <textarea id="noticeContent" name="noticeContent" rows="5" placeholder="Tulis kandungan notis di sini..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="noticeCategory">Kategori:</label>
+            <select id="noticeCategory" name="noticeCategory">
+              <option value="Pengumuman">Pengumuman</option>
+              <option value="Peringatan">Peringatan</option>
+              <option value="Maklumat">Maklumat</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Hantar Notis ke Semua Pengguna</button>
+          <div id="noticeMessage" class="message"></div>
+        </form>
+      </div>
+
+      <!-- Notices Sent History -->
+      <div class="admin-section">
+        <h2>📋 Sejarah Notis yang Dihantar</h2>
+        <table class="data-table" id="noticeTable">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Tajuk</th>
+              <th>Kategori</th>
+              <th>Tarikh Dihantar</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="noticeBody">
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 20px;">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <!-- Register New Admin Section -->
       <div class="admin-section">
-        <h2>Register Pentadbir Baru</h2>
+        <h2>👤 Register Pentadbir Baru</h2>
         <form id="registerForm">
           <div class="form-group">
             <label for="newUsername">Username (diperlukan):</label>
@@ -40,7 +87,7 @@
 
       <!-- Admin List Section -->
       <div class="admin-section">
-        <h2>Senarai Pentadbir</h2>
+        <h2>👥 Senarai Pentadbir</h2>
         <table class="data-table" id="adminTable">
           <thead>
             <tr>
@@ -61,6 +108,22 @@
   </div>
 
   <script>
+    // Loading state management
+    let isLoading = false;
+
+    // Show loading indicator
+    function showLoading(elementId, message = 'Memuatkan...') {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px;"><div class="loading-spinner"></div> ${message}</td></tr>`;
+      }
+    }
+
+    // Hide loading indicator
+    function hideLoading(elementId) {
+      // Loading will be replaced by actual content
+    }
+
     // Load user info
     async function loadUserInfo() {
       try {
@@ -69,13 +132,146 @@
         document.getElementById('username').textContent = data.username;
       } catch (error) {
         console.error('Error loading user info:', error);
+        document.getElementById('username').textContent = 'Admin';
       }
     }
 
-    // Load admin list
-    async function loadAdminList() {
+    // Load notices history with loading indicator
+    async function loadNoticeHistory() {
+      if (isLoading) return;
+      isLoading = true;
+
+      showLoading('noticeBody', 'Memuatkan sejarah notis...');
+
       try {
-        const response = await fetch('/api/users');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        const response = await fetch('/api/notices', {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        clearTimeout(timeoutId);
+
+        const result = await response.json();
+
+        if (result.success && result.notices.length > 0) {
+          const tbody = document.getElementById('noticeBody');
+          tbody.innerHTML = '';
+          result.notices.forEach((notice, index) => {
+            const row = document.createElement('tr');
+            const date = new Date(notice.created_at).toLocaleDateString('ms-MY') + ' ' + new Date(notice.created_at).toLocaleTimeString('ms-MY');
+            row.innerHTML = `
+              <td>${index + 1}</td>
+              <td>${notice.title}</td>
+              <td><span class="category-badge">${notice.category}</span></td>
+              <td>${date}</td>
+              <td><span class="status-badge success">Dihantar</span></td>
+            `;
+            tbody.appendChild(row);
+          });
+        } else {
+          document.getElementById('noticeBody').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">Tiada notis dihantar</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error loading notice history:', error);
+        if (error.name === 'AbortError') {
+          document.getElementById('noticeBody').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #f44336;">⏱️ Masa tamat - Sila cuba lagi</td></tr>';
+        } else {
+          document.getElementById('noticeBody').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #f44336;">❌ Ralat memuatkan data</td></tr>';
+        }
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    // Upload notice
+    document.getElementById('noticeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('noticeTitle').value.trim();
+      const content = document.getElementById('noticeContent').value.trim();
+      const category = document.getElementById('noticeCategory').value;
+      const messageDiv = document.getElementById('noticeMessage');
+
+      console.log('Submitting notice:', { title, content, category });
+
+      if (!title || !content) {
+        messageDiv.textContent = 'Sila isi semua medan yang diperlukan';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+        return;
+      }
+
+      // Show loading state
+      const submitBtn = document.querySelector('#noticeForm button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Menghantar...';
+      submitBtn.disabled = true;
+
+      try {
+        console.log('Making API call to /api/notices');
+        const response = await fetch('/api/notices', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title, content, category })
+        });
+
+        console.log('API response status:', response.status);
+        const result = await response.json();
+        console.log('API response:', result);
+
+        if (result.success) {
+          messageDiv.textContent = 'Notis berjaya dihantar kepada semua pengguna!';
+          messageDiv.className = 'message success';
+          messageDiv.style.display = 'block';
+          document.getElementById('noticeForm').reset();
+
+          // Reload notice history after 2 seconds
+          setTimeout(() => {
+            loadNoticeHistory();
+            messageDiv.style.display = 'none';
+          }, 2000);
+        } else {
+          messageDiv.textContent = result.message || 'Terjadi ralat';
+          messageDiv.className = 'message error';
+          messageDiv.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error submitting notice:', error);
+        messageDiv.textContent = 'Terjadi ralat. Sila cuba lagi.';
+        messageDiv.className = 'message error';
+        messageDiv.style.display = 'block';
+      } finally {
+        // Reset button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+
+    // Load admin list with loading indicator
+    async function loadAdminList() {
+      if (isLoading) return;
+      isLoading = true;
+
+      showLoading('adminBody', 'Memuatkan senarai pentadbir...');
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        const response = await fetch('/api/users', {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        clearTimeout(timeoutId);
+
         const result = await response.json();
 
         if (result.success && result.users.length > 0) {
@@ -95,10 +291,17 @@
             tbody.appendChild(row);
           });
         } else {
-          document.getElementById('adminBody').innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No admins found</td></tr>';
+          document.getElementById('adminBody').innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Tiada pentadbir</td></tr>';
         }
       } catch (error) {
         console.error('Error loading admin list:', error);
+        if (error.name === 'AbortError') {
+          document.getElementById('adminBody').innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #f44336;">⏱️ Masa tamat - Sila cuba lagi</td></tr>';
+        } else {
+          document.getElementById('adminBody').innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #f44336;">❌ Ralat memuatkan data</td></tr>';
+        }
+      } finally {
+        isLoading = false;
       }
     }
 
@@ -196,9 +399,18 @@
       }
     }
 
-    // Load user info and admin list on page load
-    loadUserInfo();
-    loadAdminList();
-  </script>
+    // Load user info, admin list and notice history on page load (sequentially)
+    async function initializePage() {
+      try {
+        await loadUserInfo();
+        await loadAdminList();
+        await loadNoticeHistory();
+      } catch (error) {
+        console.error('Error initializing page:', error);
+      }
+    }
+
+    // Start initialization
+    initializePage();
 </body>
 </html>

@@ -123,6 +123,88 @@ app.delete('/api/data/:id', checkAuth, (req, res) => {
   );
 });
 
+// API: Test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ success: true, message: 'Server is running', timestamp: new Date().toISOString() });
+});
+
+// API: Get all notices (for all users including INBOX display) - Optimized
+app.get('/api/notices', checkAuth, (req, res) => {
+  // Add cache control headers
+  res.set('Cache-Control', 'private, max-age=30'); // Cache for 30 seconds
+
+  // First check if notices table exists
+  db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='notices'`, [], (err, row) => {
+    if (err || !row) {
+      console.error('Notices table does not exist:', err);
+      return res.json({ success: false, message: 'Database not initialized' });
+    }
+
+    // Try a simpler query first
+    db.all(`SELECT * FROM notices ORDER BY created_at DESC LIMIT 100`, [], (err, rows) => {
+      if (err) {
+        console.error('Database error fetching notices:', err);
+        return res.json({ success: false, message: 'Error fetching notices' });
+      }
+
+      // Add username to each notice
+      const noticesWithUsernames = rows.map(notice => {
+        return new Promise((resolve) => {
+          db.get(`SELECT username FROM users WHERE id = ?`, [notice.created_by], (err, user) => {
+            if (err || !user) {
+              notice.username = 'Unknown';
+            } else {
+              notice.username = user.username;
+            }
+            resolve(notice);
+          });
+        });
+      });
+
+      Promise.all(noticesWithUsernames).then(notices => {
+        res.json({ success: true, notices: notices });
+      }).catch(err => {
+        console.error('Error processing notices:', err);
+        res.json({ success: false, message: 'Error processing notices' });
+      });
+    });
+  });
+});
+
+// API: Create new notice (admin only)
+app.post('/api/notices', checkAuth, (req, res) => {
+  const { title, content, category } = req.body;
+
+  console.log('Creating notice:', { title, content, category, userId: req.session.userId });
+
+  if (!title || !content) {
+    return res.json({ success: false, message: 'Title and content are required' });
+  }
+
+  // Check if user is admin (can be enhanced with role-based access)
+  db.get(`SELECT * FROM users WHERE id = ?`, [req.session.userId], (err, user) => {
+    if (err || !user) {
+      console.error('User not found:', err);
+      return res.json({ success: false, message: 'User not found' });
+    }
+
+    console.log('User found:', user.username);
+
+    db.run(
+      `INSERT INTO notices (title, content, category, created_by) VALUES (?, ?, ?, ?)`,
+      [title, content, category || 'Pengumuman', req.session.userId],
+      function(err) {
+        if (err) {
+          console.error('Error creating notice:', err);
+          return res.json({ success: false, message: 'Error creating notice' });
+        }
+        console.log('Notice created successfully, ID:', this.lastID);
+        res.json({ success: true, message: 'Notice sent to all users', id: this.lastID });
+      }
+    );
+  });
+});
+
 // API: Logout
 app.post('/api/logout', (req, res) => {
   req.session.destroy((err) => {
@@ -377,15 +459,19 @@ app.post('/api/register', checkAuth, (req, res) => {
   });
 });
 
-// Get all users (admin only)
+// Get all users (admin only) - Optimized
 app.get('/api/users', checkAuth, (req, res) => {
-  db.get(`SELECT * FROM users WHERE id = ?`, [req.session.userId], (err, adminUser) => {
+  // Add cache control headers
+  res.set('Cache-Control', 'private, max-age=60'); // Cache for 1 minute
+
+  db.get(`SELECT username FROM users WHERE id = ?`, [req.session.userId], (err, adminUser) => {
     if (err || !adminUser || adminUser.username !== 'admin') {
       return res.json({ success: false, message: 'Unauthorized - Admin only' });
     }
 
-    db.all(`SELECT id, username, created_at FROM users ORDER BY created_at DESC`, (err, rows) => {
+    db.all(`SELECT id, username, created_at FROM users ORDER BY created_at DESC LIMIT 100`, (err, rows) => {
       if (err) {
+        console.error('Database error fetching users:', err);
         return res.json({ success: false, message: 'Error fetching users' });
       }
       res.json({ success: true, users: rows || [] });
