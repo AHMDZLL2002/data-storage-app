@@ -127,9 +127,10 @@
     // Load user info
     async function loadUserInfo() {
       try {
-        const response = await fetch('/api/user');
+        const response = await fetch('/api/user', { credentials: 'same-origin' });
         const data = await response.json();
-        document.getElementById('username').textContent = data.username;
+        const username = data.user?.username || data.username || 'Admin';
+        document.getElementById('username').textContent = username;
       } catch (error) {
         console.error('Error loading user info:', error);
         document.getElementById('username').textContent = 'Admin';
@@ -149,6 +150,7 @@
 
         const response = await fetch('/api/notices', {
           signal: controller.signal,
+          credentials: 'same-origin',
           headers: {
             'Cache-Control': 'no-cache'
           }
@@ -215,6 +217,7 @@
         console.log('Making API call to /api/notices');
         const response = await fetch('/api/notices', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json'
           },
@@ -266,6 +269,7 @@
 
         const response = await fetch('/api/users', {
           signal: controller.signal,
+          credentials: 'same-origin',
           headers: {
             'Cache-Control': 'no-cache'
           }
@@ -321,8 +325,9 @@
       }
 
       try {
-        const response = await fetch('/api/register', {
+        const response = await fetch('/api/users', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json'
           },
@@ -366,7 +371,8 @@
 
       try {
         const response = await fetch(`/api/users/${userId}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          credentials: 'same-origin'
         });
 
         const result = await response.json();
@@ -387,7 +393,8 @@
     async function logout() {
       try {
         const response = await fetch('/api/logout', {
-          method: 'POST'
+          method: 'POST',
+          credentials: 'same-origin'
         });
         const data = await response.json();
 

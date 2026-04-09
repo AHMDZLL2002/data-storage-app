@@ -50,6 +50,11 @@
           </div>
 
           <div class="form-group">
+            <label for="image">🖼️ Gambar (Image)</label>
+            <input type="file" id="image" name="image" accept="image/*">
+          </div>
+
+          <div class="form-group">
             <label for="liabiliti">⚖️ Liabiliti (Liability)</label>
             <input type="text" id="liabiliti" name="liabiliti" placeholder="Butiran liabiliti">
           </div>
@@ -93,9 +98,10 @@
     // Load user info
     async function loadUserInfo() {
       try {
-        const response = await fetch('/api/user');
+        const response = await fetch('/api/user', { credentials: 'same-origin' });
         const data = await response.json();
-        document.getElementById('username').textContent = data.username;
+        const username = data.user?.username || data.username;
+        document.getElementById('username').textContent = username;
       } catch (error) {
         console.error('Error loading user info:', error);
       }
@@ -118,7 +124,7 @@
     document.getElementById('dataForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const category = 'Perbekalan'; // Default category since selection was removed
+      const category = sessionStorage.getItem('billCategory') || 'perbekalan';
       const tarikh = document.getElementById('tarikh').value;
       const rujukan = document.getElementById('rujukan').value;
       const dibayar_kepada = document.getElementById('dibayar_kepada').value;
@@ -127,6 +133,7 @@
       const bayaran = document.getElementById('bayaran').value;
       const jumlah_bayaran = document.getElementById('jumlah_bayaran').value;
       const baki = document.getElementById('baki').value;
+      const image = document.getElementById('image').files[0];
       const messageDiv = document.getElementById('message');
 
       if (!tarikh || !perkara) {
@@ -143,22 +150,24 @@
       submitBtn.disabled = true;
 
       try {
+        const formData = new FormData();
+        formData.append('category', category);
+        formData.append('tarikh', tarikh);
+        formData.append('rujukan', rujukan);
+        formData.append('dibayar_kepada', dibayar_kepada);
+        formData.append('perkara', perkara);
+        formData.append('liabiliti', liabiliti);
+        formData.append('bayaran', bayaran);
+        formData.append('jumlah_bayaran', jumlah_bayaran);
+        formData.append('baki', baki);
+        if (image) {
+          formData.append('image', image);
+        }
+
         const response = await fetch('/api/data', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            category,
-            tarikh,
-            rujukan,
-            dibayar_kepada,
-            perkara,
-            liabiliti,
-            bayaran,
-            jumlah_bayaran,
-            baki
-          })
+          credentials: 'same-origin',
+          body: formData
         });
 
         const result = await response.json();
@@ -193,7 +202,8 @@
     async function logout() {
       try {
         const response = await fetch('/api/logout', {
-          method: 'POST'
+          method: 'POST',
+          credentials: 'same-origin'
         });
         const data = await response.json();
 

@@ -21,9 +21,6 @@ db.serialize(() => {
     )
   `);
 
-  // Drop old data table if it exists (migration)
-  db.run(`DROP TABLE IF EXISTS data`);
-
   // Data table with transaction structure and category
   db.run(`
     CREATE TABLE IF NOT EXISTS data (
@@ -38,6 +35,7 @@ db.serialize(() => {
       bayaran REAL,
       jumlah_bayaran REAL,
       baki REAL,
+      image TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
@@ -50,11 +48,35 @@ db.serialize(() => {
       title TEXT NOT NULL,
       content TEXT NOT NULL,
       category TEXT DEFAULT 'Pengumuman',
+      image_data TEXT,
+      image_name TEXT,
       created_by INTEGER NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (created_by) REFERENCES users(id)
     )
   `);
+
+  // Migration: Add image columns if they don't exist
+  db.all("PRAGMA table_info(notices)", (err, columns) => {
+    if (columns) {
+      const hasImageData = columns.some(col => col.name === 'image_data');
+      const hasImageName = columns.some(col => col.name === 'image_name');
+      
+      if (!hasImageData) {
+        db.run(`ALTER TABLE notices ADD COLUMN image_data TEXT`, (err) => {
+          if (err) console.error('Error adding image_data column:', err);
+          else console.log('Added image_data column to notices table');
+        });
+      }
+      
+      if (!hasImageName) {
+        db.run(`ALTER TABLE notices ADD COLUMN image_name TEXT`, (err) => {
+          if (err) console.error('Error adding image_name column:', err);
+          else console.log('Added image_name column to notices table');
+        });
+      }
+    }
+  });
 
   // Create indexes for better performance
   db.run(`CREATE INDEX IF NOT EXISTS idx_notices_created_at ON notices(created_at DESC)`);

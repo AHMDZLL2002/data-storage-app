@@ -13,6 +13,7 @@
       <div class="logo-container">
         <img src="images/logo-main.png" alt="LOGO" class="navbar-logo">
       </div>
+      <div id="apiDebug" style="margin-left:20px; color:#b00; font-weight:600;"></div>
       <div class="user-info">
         <span>Welcome, <strong id="username">User</strong></span>
         <button class="change-password-btn" onclick="openChangePasswordModal()">🔐 Change Password</button>
@@ -34,9 +35,9 @@
       </div>
     </div>
 
-    <div class="dashboard-layout">
+    <div class="dashboard-layout" id="dashboardLayout">
       <!-- Sidebar Menu -->
-      <aside class="sidebar">
+      <aside class="sidebar" id="sidebar">
         <nav class="sidebar-menu">
           <div class="sidebar-title">MENU UTAMA</div>
           
@@ -88,35 +89,36 @@
             <span class="menu-text">View Data</span>
           </button>
 
-          <div id="adminMenuContainer" style="display: none;">
-            <button class="menu-item" onclick="switchView('admin')">
-              <span class="menu-icon">👨‍💼</span>
-              <span class="menu-text">Paparan ADMIN</span>
+          <div class="menu-section" id="adminMenuContainer" style="display: none;">
+            <div class="menu-section-title">👨‍💼 ADMIN</div>
+            <button class="menu-item submenu" onclick="switchView('daftar-pengguna')">
+              <span class="menu-icon">👥</span>
+              <span class="menu-text">Daftar Pengguna</span>
+            </button>
+            <button class="menu-item submenu" onclick="switchView('buat-notis')">
+              <span class="menu-icon">📢</span>
+              <span class="menu-text">Buat/Update Notis</span>
             </button>
           </div>
         </nav>
       </aside>
 
+      <!-- Sidebar Toggle Button -->
+      <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Tunjuk/Sorok Sidebar">
+        <span class="toggle-arrow">◀</span>
+      </button>
+
       <!-- Main Content Area -->
-      <main class="content-area">
+      <main class="content-area" id="contentArea">
         <!-- INBOX View -->
         <div id="inboxView" class="view-section" style="display: none;">
           <h1>📨 INBOX - Notis dan Pengumuman</h1>
           <div class="inbox-container">
-            <!-- Table will be shown only when there are notices -->
-            <div id="inboxTableContainer" style="display: none;">
-              <table class="data-table" id="inboxTable">
-                <thead>
-                  <tr>
-                    <th>Tajuk</th>
-                    <th>Kategori</th>
-                    <th>Daripada</th>
-                    <th>Tarikh</th>
-                  </tr>
-                </thead>
-                <tbody id="inboxBody">
-                </tbody>
-              </table>
+            <!-- Notice cards will be shown here -->
+            <div id="inboxNoticesContainer" style="display: none;">
+              <div id="inboxBody" class="notices-grid">
+                <!-- Notice cards will be inserted here -->
+              </div>
             </div>
             <!-- Message when no notices -->
             <div id="inboxEmptyMessage" class="empty-notice-message">
@@ -187,6 +189,7 @@
               </select>
             </div>
           </div>
+          <div class="table-wrapper">
           <table class="data-table" id="bukuPerbekalanTable">
             <thead>
               <tr>
@@ -201,6 +204,7 @@
             </thead>
             <tbody id="bukuPerbekalanBody"></tbody>
           </table>
+          </div>
         </div>
 
         <!-- Buku Vot - Pembangunan -->
@@ -225,6 +229,7 @@
               </select>
             </div>
           </div>
+          <div class="table-wrapper">
           <table class="data-table" id="bukuPembangunanTable">
             <thead>
               <tr>
@@ -239,6 +244,7 @@
             </thead>
             <tbody id="bukuPembangunanBody"></tbody>
           </table>
+          </div>
         </div>
 
         <!-- Buku Vot - Gaji -->
@@ -263,6 +269,7 @@
               </select>
             </div>
           </div>
+          <div class="table-wrapper">
           <table class="data-table" id="bukuGajiTable">
             <thead>
               <tr>
@@ -277,6 +284,7 @@
             </thead>
             <tbody id="bukuGajiBody"></tbody>
           </table>
+          </div>
         </div>
 
         <!-- Buku Vot - Operasi -->
@@ -301,6 +309,7 @@
               </select>
             </div>
           </div>
+          <div class="table-wrapper">
           <table class="data-table" id="bukuOperasiTable">
             <thead>
               <tr>
@@ -315,6 +324,7 @@
             </thead>
             <tbody id="bukuOperasiBody"></tbody>
           </table>
+          </div>
         </div>
 
         <!-- Buku Vot - Penyelenggaraan -->
@@ -339,6 +349,7 @@
               </select>
             </div>
           </div>
+          <div class="table-wrapper">
           <table class="data-table" id="bukuPenyelenggaraanTable">
             <thead>
               <tr>
@@ -353,6 +364,7 @@
             </thead>
             <tbody id="bukuPenyelenggaraanBody"></tbody>
           </table>
+          </div>
         </div>
 
         <!-- Buku Vot - Utiliti -->
@@ -377,6 +389,7 @@
               </select>
             </div>
           </div>
+          <div class="table-wrapper">
           <table class="data-table" id="bukuUtilitiTable">
             <thead>
               <tr>
@@ -391,6 +404,7 @@
             </thead>
             <tbody id="bukuUtilitiBody"></tbody>
           </table>
+          </div>
         </div>
 
         <!-- View Statistik -->
@@ -479,6 +493,7 @@
             <button class="export-btn export-csv" onclick="exportData('csv')">📋 Export CSV</button>
             <button class="btn" onclick="window.location.href='/data-entry'" style="display: inline-block; width: auto; padding: 10px 20px;">➕ Tambah Data</button>
           </div>
+          <div class="table-wrapper">
           <table class="data-table" id="dataTable">
             <thead>
               <tr>
@@ -491,14 +506,101 @@
                 <th>Bayaran</th>
                 <th>Jumlah Bayaran</th>
                 <th>Baki</th>
+                <th>Gambar</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody id="dataBody">
             </tbody>
           </table>
+          </div>
           <div class="empty-message" id="emptyMessage" style="display: none;">
             No data available. <a href="#" onclick="switchView('data'); return false;">Add some data</a>
+          </div>
+        </div>
+
+        <!-- Daftar Pengguna View -->
+        <div id="daftarPenggunaView" class="view-section" style="display: none;">
+          <h1>👥 Daftar Pengguna</h1>
+          <div style="margin-bottom: 20px;">
+            <button class="btn" onclick="openAddUserModal()" style="display: inline-block; width: auto; padding: 10px 20px;">➕ Tambah Pengguna Baru</button>
+            <div id="userMessage" class="message"></div>
+          </div>
+          <div class="table-wrapper">
+          <table class="data-table" id="userTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Tarikh Daftar</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="userBody">
+            </tbody>
+          </table>
+          </div>
+          <div class="empty-message" id="emptyUserMessage" style="display: none;">
+            Tiada pengguna tersedia.
+          </div>
+        </div>
+
+        <!-- Buat/Update Notis View -->
+        <div id="buatNotisView" class="view-section" style="display: none;">
+          <h1>📢 Buat/Update Notis</h1>
+          <div class="admin-section">
+            <h2>Muatnaik Notis/Nota kepada Semua Pengguna</h2>
+            <form id="noticeForm">
+              <div class="form-group">
+                <label for="noticeTitle">Tajuk Notis (diperlukan):</label>
+                <input type="text" id="noticeTitle" name="noticeTitle" placeholder="e.g., Pengumuman Penting" required>
+              </div>
+              <div class="form-group">
+                <label for="noticeContent">Kandungan Notis (diperlukan):</label>
+                <textarea id="noticeContent" name="noticeContent" rows="5" placeholder="Tulis kandungan notis di sini..." required></textarea>
+              </div>
+              <div class="form-group">
+                <label for="noticeCategory">Kategori:</label>
+                <select id="noticeCategory" name="noticeCategory">
+                  <option value="Pengumuman">Pengumuman</option>
+                  <option value="Peringatan">Peringatan</option>
+                  <option value="Maklumat">Maklumat</option>
+                  <option value="Urgent">Urgent</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="noticeImage">Upload Gambar (pilihan):</label>
+                <input type="file" id="noticeImage" name="noticeImage" accept="image/*" />
+                <small style="color: #666;">Format: JPG, PNG, GIF. Saiz maksimum: 5MB</small>
+                <div id="imagePreview" style="margin-top: 10px; display: none;">
+                  <img id="previewImg" src="" alt="Preview" style="max-width: 300px; max-height: 200px; border-radius: 5px;">
+                </div>
+              </div>
+              <button type="submit" class="btn">Hantar Notis ke Semua Pengguna</button>
+              <div id="noticeMessage" class="message"></div>
+            </form>
+          </div>
+
+          <!-- Notices Sent History -->
+          <div class="admin-section" style="margin-top: 30px;">
+            <h2>📋 Riwayat Notis yang Dihantar</h2>
+          <div class="table-wrapper">
+            <table class="data-table" id="notesHistoryTable">
+              <thead>
+                <tr>
+                  <th>Tajuk</th>
+                  <th>Kategori</th>
+                  <th>Tarikh Hantar</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="notesHistoryBody">
+              </tbody>
+            </table>
+          </div>
+            <div class="empty-message" id="emptyNotesMessage" style="display: none;">
+              Tiada notis yang telah dihantar.
+            </div>
           </div>
         </div>
       </main>
@@ -539,7 +641,16 @@
 
     // Update all month selects based on current language
     function updateMonthSelects() {
-      const monthIds = ['monthSelectPerbekalan', 'monthSelectPembangunan', 'monthSelectStats', 'monthSelectData'];
+      const monthIds = [
+        'monthSelectPerbekalan',
+        'monthSelectPembangunan',
+        'monthSelectGaji',
+        'monthSelectOperasi',
+        'monthSelectPenyelenggaraan',
+        'monthSelectUtiliti',
+        'monthSelectStats',
+        'monthSelectData'
+      ];
       const monthCodes = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
       const monthKeys = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
       
@@ -570,12 +681,13 @@
     // Load user info and show default view
     async function loadUserInfo() {
       try {
-        const response = await fetch('/api/user');
+        const response = await fetch('/api/user', { credentials: 'same-origin' });
         const data = await response.json();
-        document.getElementById('username').textContent = data.username;
+        const username = data.user?.username || data.username;
+        document.getElementById('username').textContent = username;
         
         // Show admin menu only for admin
-        if (data.username === 'admin') {
+        if (username === 'admin') {
           document.getElementById('adminMenuContainer').style.display = 'block';
         }
         
@@ -634,6 +746,14 @@
           document.getElementById('dataView').style.display = 'block';
           loadData();
           break;
+        case 'daftar-pengguna':
+          document.getElementById('daftarPenggunaView').style.display = 'block';
+          loadUsers();
+          break;
+        case 'buat-notis':
+          document.getElementById('buatNotisView').style.display = 'block';
+          loadNotesHistory();
+          break;
         case 'admin':
           window.location.href = '/admin';
           break;
@@ -659,12 +779,20 @@
     // Load Buku Vot (by category)
     async function loadBukuVot(category) {
       try {
-        const response = await fetch('/api/data');
+        const response = await fetch('/api/data?all=true', { credentials: 'same-origin' });
         const result = await response.json();
 
-        if (result.success && result.data) {
-          // Filter data by category first
-          const categoryData = result.data.filter(item => item.category === category);
+        if (!response.ok) {
+          document.getElementById('apiDebug').textContent = 'API /api/data error: ' + (result.error || response.status);
+        } else {
+          document.getElementById('apiDebug').textContent = '';
+        }
+
+        if (result.success && Array.isArray(result.data)) {
+          // Filter data by category first (case-insensitive match)
+          const categoryData = result.data.filter(item => {
+            return item.category && item.category.toString().toLowerCase() === category.toLowerCase();
+          });
           
           const monthSelectId = `monthSelect${category.charAt(0).toUpperCase() + category.slice(1)}`;
           const month = getSelectedMonth(monthSelectId);
@@ -704,10 +832,16 @@
     // Load statistics data
     async function loadStatistics() {
       try {
-        const response = await fetch('/api/data');
+        const response = await fetch('/api/data?all=true', { credentials: 'same-origin' });
         const result = await response.json();
 
-        if (result.success && result.data) {
+        if (!response.ok) {
+          document.getElementById('apiDebug').textContent = 'API /api/data error: ' + (result.error || response.status);
+        } else {
+          document.getElementById('apiDebug').textContent = '';
+        }
+
+        if (result.success && Array.isArray(result.data)) {
           const month = getSelectedMonth('monthSelectStats');
           let data = result.data;
           
@@ -738,7 +872,7 @@
           categoryStatsContainer.innerHTML = '';
 
           categories.forEach(category => {
-            const categoryData = data.filter(item => item.category === category);
+            const categoryData = data.filter(item => item.category && item.category.toString().toLowerCase() === category.toString().toLowerCase());
             if (categoryData.length > 0) {
               let catBayaran = 0;
               let catJumlahBayaran = 0;
@@ -783,17 +917,23 @@
     // Load data
     async function loadData() {
       try {
-        const response = await fetch('/api/data');
+        const response = await fetch('/api/data?all=true', { credentials: 'same-origin' });
         const result = await response.json();
 
-        if (result.success && result.data.length > 0) {
+        if (!response.ok) {
+          document.getElementById('apiDebug').textContent = 'API /api/data error: ' + (result.error || response.status);
+        } else {
+          document.getElementById('apiDebug').textContent = '';
+        }
+
+        if (result.success && Array.isArray(result.data) && result.data.length > 0) {
           const month = getSelectedMonth('monthSelectData');
           const category = document.getElementById('categorySelectData').value;
           let data = result.data;
           
-          // Filter by category first
+          // Filter by category first (normalize case)
           if (category) {
-            data = data.filter(item => item.category === category);
+            data = data.filter(item => item.category && item.category.toString().toLowerCase() === category.toString().toLowerCase());
           }
           
           // Then filter by month
@@ -806,6 +946,7 @@
           
           data.forEach(item => {
             const row = document.createElement('tr');
+            const imageHtml = item.image ? `<img src="${item.image}" alt="Gambar" style="max-width: 100px; max-height: 100px;">` : '-';
             row.innerHTML = `
               <td>${item.tarikh || '-'}</td>
               <td>${item.rujukan || '-'}</td>
@@ -816,6 +957,7 @@
               <td>RM ${parseFloat(item.bayaran || 0).toFixed(2)}</td>
               <td>RM ${parseFloat(item.jumlah_bayaran || 0).toFixed(2)}</td>
               <td>RM ${parseFloat(item.baki || 0).toFixed(2)}</td>
+              <td>${imageHtml}</td>
               <td><button class="delete-btn" onclick="deleteData(${item.id})">Delete</button></td>
             `;
             tbody.appendChild(row);
@@ -831,12 +973,12 @@
 
     // Load notices for INBOX with loading indicator
     async function loadNotices() {
-      const tableContainer = document.getElementById('inboxTableContainer');
+      const noticesContainer = document.getElementById('inboxNoticesContainer');
       const emptyMessage = document.getElementById('inboxEmptyMessage');
       const tbody = document.getElementById('inboxBody');
 
       // Show loading in empty message area
-      tableContainer.style.display = 'none';
+      noticesContainer.style.display = 'none';
       emptyMessage.innerHTML = '<div class="loading-spinner"></div> <span>Memuatkan notis...</span>';
       emptyMessage.style.display = 'block';
 
@@ -846,9 +988,10 @@
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
-        console.log('Making API call to /api/notices');
-        const response = await fetch('/api/notices', {
+        console.log('Making API call to /api/notices/inbox');
+        const response = await fetch('/api/notices/inbox', {
           signal: controller.signal,
+          credentials: 'same-origin',
           headers: {
             'Cache-Control': 'no-cache'
           }
@@ -860,26 +1003,50 @@
         console.log('API response:', result);
 
         if (result.success && result.notices && result.notices.length > 0) {
-          // Show table with notices
+          // Show notice cards
           tbody.innerHTML = '';
           result.notices.forEach(notice => {
-            const row = document.createElement('tr');
-            const date = new Date(notice.created_at).toLocaleDateString('ms-MY') + ' ' + new Date(notice.created_at).toLocaleTimeString('ms-MY');
-            row.innerHTML = `
-              <td><strong>${notice.title}</strong><br><small>${notice.content.substring(0, 100)}${notice.content.length > 100 ? '...' : ''}</small></td>
-              <td><span class="category-badge">${notice.category}</span></td>
-              <td>${notice.username}</td>
-              <td>${date}</td>
+            const noticeCard = document.createElement('div');
+            noticeCard.className = 'notice-card';
+            
+            // Determine category styling
+            let categoryClass = 'category-pengumuman';
+            const categoryLower = notice.category.toLowerCase();
+            if (categoryLower.includes('peringatan')) {
+              categoryClass = 'category-peringatan';
+            } else if (categoryLower.includes('urgent')) {
+              categoryClass = 'category-urgent';
+            } else if (categoryLower.includes('maklumat')) {
+              categoryClass = 'category-maklumat';
+            }
+            
+            const date = new Date(notice.created_at).toLocaleDateString('ms-MY');
+            const time = new Date(notice.created_at).toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+            
+            noticeCard.innerHTML = `
+              <div class="${categoryClass}">
+                <h2 class="notice-title">${notice.title}</h2>
+                <div class="notice-category">${notice.category}</div>
+                <div class="notice-meta">${date} pada ${time}</div>
+              </div>
+              <div class="notice-content">
+                ${notice.content}
+              </div>
+              ${notice.image_data ? `
+                <div class="notice-image-container" style="margin-top: 15px;">
+                  <img src="${notice.image_data}" alt="Gambar Notis" style="max-width: 100%; max-height: 400px; border-radius: 8px; object-fit: cover;">
+                </div>
+              ` : ''}
             `;
-            tbody.appendChild(row);
+            tbody.appendChild(noticeCard);
           });
 
-          // Show table, hide empty message
-          tableContainer.style.display = 'block';
+          // Show notice cards, hide empty message
+          noticesContainer.style.display = 'block';
           emptyMessage.style.display = 'none';
         } else {
-          // Show empty message, hide table
-          tableContainer.style.display = 'none';
+          // Show empty message, hide notice cards
+          noticesContainer.style.display = 'none';
           emptyMessage.innerHTML = `
             <div class="empty-notice-icon">📭</div>
             <h3>Tiada Notis Pada Masa Ini</h3>
@@ -894,7 +1061,7 @@
         } else {
           emptyMessage.innerHTML = '<div class="empty-notice-icon">❌</div><h3>Ralat Memuatkan Notis</h3><p>Sila cuba lagi</p>';
         }
-        tableContainer.style.display = 'none';
+        noticesContainer.style.display = 'none';
         emptyMessage.style.display = 'block';
       }
     }
@@ -905,7 +1072,8 @@
 
       try {
         const response = await fetch(`/api/data/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          credentials: 'same-origin'
         });
         const result = await response.json();
 
@@ -923,7 +1091,8 @@
     async function logout() {
       try {
         const response = await fetch('/api/logout', {
-          method: 'POST'
+          method: 'POST',
+          credentials: 'same-origin'
         });
         const data = await response.json();
 
@@ -983,6 +1152,7 @@
       try {
         const response = await fetch('/api/change-password', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json'
           },
@@ -1035,9 +1205,291 @@
       }
     });
 
+    // ── Sidebar toggle ──────────────────────────────────────────
+    function toggleSidebar() {
+      const layout = document.getElementById('dashboardLayout');
+      const btn    = document.getElementById('sidebarToggle');
+      const isMobile = window.innerWidth <= 768;
+
+      layout.classList.toggle('sidebar-collapsed');
+      const collapsed = layout.classList.contains('sidebar-collapsed');
+
+      if (isMobile) {
+        btn.querySelector('.toggle-arrow').textContent = collapsed ? '▼' : '▲';
+      } else {
+        btn.querySelector('.toggle-arrow').textContent = collapsed ? '▶' : '◀';
+      }
+
+      // Persist state
+      try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch(e) {}
+    }
+
+    // Restore sidebar state on load
+    (function() {
+      const saved = localStorage.getItem('sidebarCollapsed');
+      const isMobile = window.innerWidth <= 768;
+      const layout = document.getElementById('dashboardLayout');
+      const btn = document.getElementById('sidebarToggle');
+
+      // Default: collapsed on mobile, open on desktop
+      const shouldCollapse = saved !== null ? saved === '1' : isMobile;
+
+      if (shouldCollapse) {
+        layout.classList.add('sidebar-collapsed');
+        btn.querySelector('.toggle-arrow').textContent = isMobile ? '▼' : '▶';
+      } else {
+        btn.querySelector('.toggle-arrow').textContent = isMobile ? '▲' : '◀';
+      }
+    })();
+
+    // Update arrow icon on resize
+    window.addEventListener('resize', function() {
+      const collapsed = document.getElementById('dashboardLayout').classList.contains('sidebar-collapsed');
+      const isMobile = window.innerWidth <= 768;
+      document.querySelector('.toggle-arrow').textContent = collapsed
+        ? (isMobile ? '▼' : '▶')
+        : (isMobile ? '▲' : '◀');
+    });
+    // ────────────────────────────────────────────────────────────
+
     // Initialize
     updateMonthSelects();
     loadUserInfo();
+
+    // Load Users
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/users', { credentials: 'same-origin' });
+        const result = await response.json();
+
+        if (result.data) {
+          const tbody = document.getElementById('userBody');
+          tbody.innerHTML = '';
+
+          if (result.data.length > 0) {
+            result.data.forEach(user => {
+              const row = document.createElement('tr');
+              const date = new Date(user.created_at).toLocaleDateString('ms-MY');
+              row.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.username}</td>
+                <td>${date}</td>
+                <td>
+                  ${user.id !== 1 ? `<button class="btn btn-delete" onclick="deleteUser(${user.id})">Delete</button>` : '<span style="color: #999;">Admin</span>'}
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+            document.getElementById('emptyUserMessage').style.display = 'none';
+          } else {
+            document.getElementById('emptyUserMessage').style.display = 'block';
+          }
+        }
+      } catch (error) {
+        console.error('Error loading users:', error);
+      }
+    }
+
+    // Open Add User Modal
+    function openAddUserModal() {
+      const response = prompt('Masukkan username pengguna baru:');
+      if (!response) return;
+
+      const username = response.trim();
+      if (!username) {
+        alert('Username tidak boleh kosong');
+        return;
+      }
+
+      const password = prompt('Masukkan password untuk pengguna baru:');
+      if (!password) return;
+
+      if (password.length < 5) {
+        alert('Password harus minimal 5 karakter');
+        return;
+      }
+
+      addUser(username, password);
+    }
+
+    // Add User
+    async function addUser(username, password) {
+      try {
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('Pengguna berhasil ditambahkan!');
+          loadUsers();
+        } else {
+          alert('Error: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Error adding user:', error);
+        alert('Error adding user');
+      }
+    }
+
+    // Delete User
+    async function deleteUser(id) {
+      if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) return;
+
+      try {
+        const response = await fetch(`/api/users/${id}`, {
+          method: 'DELETE',
+          credentials: 'same-origin'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('Pengguna berhasil dihapus!');
+          loadUsers();
+        } else {
+          alert('Error: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Error deleting user');
+      }
+    }
+
+    // Load Notes History
+    async function loadNotesHistory() {
+      try {
+        const response = await fetch('/api/notices', { credentials: 'same-origin' });
+        const result = await response.json();
+
+        if (result.data) {
+          const tbody = document.getElementById('notesHistoryBody');
+          tbody.innerHTML = '';
+
+          if (result.data.length > 0) {
+            result.data.forEach(notice => {
+              const row = document.createElement('tr');
+              const date = new Date(notice.created_at).toLocaleDateString('ms-MY');
+              row.innerHTML = `
+                <td>${notice.title}</td>
+                <td>${notice.category}</td>
+                <td>${date}</td>
+                <td>
+                  <button class="btn btn-delete" onclick="deleteNotice(${notice.id})">Delete</button>
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+            document.getElementById('emptyNotesMessage').style.display = 'none';
+          } else {
+            document.getElementById('emptyNotesMessage').style.display = 'block';
+          }
+        }
+      } catch (error) {
+        console.error('Error loading notices:', error);
+      }
+    }
+
+    // Delete Notice
+    async function deleteNotice(id) {
+      if (!confirm('Apakah Anda yakin ingin menghapus notis ini?')) return;
+
+      try {
+        const response = await fetch(`/api/notices/${id}`, {
+          method: 'DELETE',
+          credentials: 'same-origin'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('Notis berhasil dihapus!');
+          loadNotesHistory();
+        } else {
+          alert('Error: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Error deleting notice:', error);
+        alert('Error deleting notice');
+      }
+    }
+
+    // Handle Notice Form Submit
+    if (document.getElementById('noticeForm')) {
+      // Add image preview handler
+      const noticeImageInput = document.getElementById('noticeImage');
+      if (noticeImageInput) {
+        noticeImageInput.addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+              const preview = document.getElementById('imagePreview');
+              const previewImg = document.getElementById('previewImg');
+              previewImg.src = event.target.result;
+              preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
+      document.getElementById('noticeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const title = document.getElementById('noticeTitle').value;
+        const content = document.getElementById('noticeContent').value;
+        const category = document.getElementById('noticeCategory').value;
+        const image = document.getElementById('noticeImage').files[0];
+        const messageDiv = document.getElementById('noticeMessage');
+
+        try {
+          const formData = new FormData();
+          formData.append('title', title);
+          formData.append('content', content);
+          formData.append('category', category);
+          if (image) {
+            formData.append('noticeImage', image);
+          }
+
+          const response = await fetch('/api/notices', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            messageDiv.textContent = 'Notis berhasil dihantar ke semua pengguna!';
+            messageDiv.className = 'message success';
+            messageDiv.style.display = 'block';
+
+            document.getElementById('noticeForm').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+            loadNotesHistory();
+
+            setTimeout(() => {
+              messageDiv.style.display = 'none';
+            }, 3000);
+          } else {
+            messageDiv.textContent = 'Error: ' + result.error;
+            messageDiv.className = 'message error';
+            messageDiv.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Error submitting notice:', error);
+          messageDiv.textContent = 'Error mengirim notis';
+          messageDiv.className = 'message error';
+          messageDiv.style.display = 'block';
+        }
+      });
+    }
 
     // Register bill - redirect to data entry with category
     function registerBill(category) {
