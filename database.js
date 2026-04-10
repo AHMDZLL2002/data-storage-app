@@ -164,6 +164,19 @@ db.serialize(() => {
     }
   });
 
+  // Login logs table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS login_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      ip_address TEXT,
+      logged_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_login_logs_user_id ON login_logs(user_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_login_logs_logged_at ON login_logs(logged_at DESC)`);
+
   // Create indexes for better performance
   db.run(`CREATE INDEX IF NOT EXISTS idx_notices_created_at ON notices(created_at DESC)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_notices_created_by ON notices(created_by)`);

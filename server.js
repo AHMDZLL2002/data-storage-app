@@ -80,6 +80,9 @@ app.post('/api/login', (req, res) => {
     if (user) {
       req.session.userId = user.id;
       req.session.username = user.username;
+      // Log login event
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
+      db.run('INSERT INTO login_logs (user_id, action, ip_address) VALUES (?, ?, ?)', [user.id, 'login', ip]);
       res.json({ success: true, user: { id: user.id, username: user.username } });
     } else {
       res.status(401).json({ error: 'Invalid credentials' });
@@ -89,9 +92,15 @@ app.post('/api/login', (req, res) => {
 
 // Logout
 app.post('/api/logout', (req, res) => {
+  const userId = req.session.userId;
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
   req.session.destroy((err) => {
     if (err) {
       return res.status(500).json({ error: 'Logout failed' });
+    }
+    // Log logout event
+    if (userId) {
+      db.run('INSERT INTO login_logs (user_id, action, ip_address) VALUES (?, ?, ?)', [userId, 'logout', ip]);
     }
     res.json({ success: true });
   });
@@ -182,6 +191,28 @@ app.delete('/api/data/:id', requireAuth, (req, res) => {
   });
 });
 
+// Batch delete selected data entries
+app.delete('/api/data', requireAuth, (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'No IDs provided' });
+  }
+  const placeholders = ids.map(() => '?').join(',');
+  const params = [...ids, req.session.userId];
+  db.run(`DELETE FROM data WHERE id IN (${placeholders}) AND user_id = ?`, params, function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ success: true, deleted: this.changes });
+  });
+});
+
+// Delete ALL data entries for current user
+app.delete('/api/data-all', requireAdmin, (req, res) => {
+  db.run('DELETE FROM data', [], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ success: true, deleted: this.changes });
+  });
+});
+
 // Get statistics
 app.get('/api/stats', requireAuth, (req, res) => {
   const returnAll = req.query.all === 'true';
@@ -261,6 +292,35 @@ app.delete('/api/users/:id', requireAdmin, (req, res) => {
     }
     res.json({ success: true });
   });
+});
+
+// Get login history for all users (admin only) - last login & logout per user
+app.get('/api/users/login-history', requireAdmin, (req, res) => {
+  const sql = `
+    SELECT
+      u.id,
+      MAX(CASE WHEN l.action = 'login'  THEN l.logged_at END) AS last_login,
+      MAX(CASE WHEN l.action = 'logout' THEN l.logged_at END) AS last_logout
+    FROM users u
+    LEFT JOIN login_logs l ON l.user_id = u.id
+    GROUP BY u.id
+  `;
+  db.all(sql, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ success: true, data: rows });
+  });
+});
+
+// Get full login history for a specific user (admin only)
+app.get('/api/users/:id/login-history', requireAdmin, (req, res) => {
+  db.all(
+    'SELECT action, ip_address, logged_at FROM login_logs WHERE user_id = ? ORDER BY logged_at DESC LIMIT 50',
+    [req.params.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json({ success: true, data: rows });
+    }
+  );
 });
 
 // Get all notices (admin only) - for admin management
@@ -802,27 +862,61 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       const HDR_H = 22;
       const FOOT_H = 20;
 
+      const HEADER_H = 88;  // taller header for clarity
+      const LINE1_Y  = 10;
+      const LOGO_SIZE = 65;
+
       function drawHeader(isFirst) {
-        doc.rect(0, 0, PW, 40).fill('#f5f7fb');
-        doc.rect(0, 40, PW, 2).fill(NAVY);
+        // Background gradient-like: light top band
+        doc.rect(0, 0, PW, HEADER_H).fill('#f4f6fb');
+        // Navy accent left stripe
+        doc.rect(0, 0, 6, HEADER_H).fill(NAVY);
+        // Navy bottom border
+        doc.rect(0, HEADER_H - 2, PW, 2).fill(NAVY);
+        // Thin gold accent line above navy bottom
+        doc.rect(0, HEADER_H - 4, PW, 2).fill('#c8a951');
+
+        // Logo — left side, vertically centred
         const logoPath = path.join(__dirname,'public','images','logo-footer.png');
+        const logoX = 18;
+        const logoY = (HEADER_H - LOGO_SIZE) / 2;
         if (fsLib.existsSync(logoPath)) {
-          try { doc.image(logoPath, MX, 5, { width:30, height:30 }); } catch(e){}
+          try { doc.image(logoPath, logoX, logoY, { width:LOGO_SIZE, height:LOGO_SIZE }); } catch(e){}
         }
+
+        // Vertical divider between logo and text
+        const divX = logoX + LOGO_SIZE + 14;
+        doc.rect(divX, 12, 1.5, HEADER_H - 24).fill('#c8d0e8');
+
+        const textX = divX + 12;
+        const textW = PW - textX - MX;
+
         if (isFirst) {
-          doc.fillColor(NAVY).fontSize(14).font('Helvetica-Bold')
-             .text('SISTEM PENGURUSAN KEWANGAN VOT', MX+38, 6, { width:CONTENT_W-38, align:'center' });
-          doc.fillColor('#444').fontSize(10).font('Helvetica')
-             .text('PENYATA TRANSAKSI', MX+38, 21, { width:CONTENT_W-38, align:'center' });
-          doc.fillColor('#666').fontSize(8)
-             .text(`Kategori: ${catLabel}  ·  Bulan: ${monthLabel}  ·  Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`, MX+38, 32, { width:CONTENT_W-38, align:'center' });
+          // Organisation name
+          doc.fillColor(NAVY).fontSize(16).font('Helvetica-Bold')
+             .text('SISTEM PENGURUSAN KEWANGAN VOT', textX, 13, { width:textW });
+          // Thin underline
+          doc.rect(textX, 32, textW * 0.65, 1).fill('#c8a951');
+          // Report subtitle
+          doc.fillColor('#2c4a8c').fontSize(11).font('Helvetica-Bold')
+             .text('PENYATA TRANSAKSI', textX, 37, { width:textW });
+          // Details line
+          doc.fillColor('#555').fontSize(8.5).font('Helvetica')
+             .text(`Kategori: ${catLabel}`, textX, 54, { width:textW });
+          doc.fillColor('#555').fontSize(8.5)
+             .text(`Bulan: ${monthLabel}`, textX, 65, { width:textW });
+          // Print date — right aligned
+          doc.fillColor('#888').fontSize(7.5)
+             .text(`Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`, MX, HEADER_H - 18, { width:CONTENT_W, align:'right' });
         } else {
-          doc.fillColor(NAVY).fontSize(11).font('Helvetica-Bold')
-             .text('PENYATA TRANSAKSI (sambungan)', MX+38, 8, { width:CONTENT_W-38, align:'center' });
-          doc.fillColor('#666').fontSize(8).font('Helvetica')
-             .text(`Kategori: ${catLabel}  ·  Bulan: ${monthLabel}`, MX+38, 24, { width:CONTENT_W-38, align:'center' });
+          doc.fillColor(NAVY).fontSize(13).font('Helvetica-Bold')
+             .text('PENYATA TRANSAKSI', textX, 18, { width:textW });
+          doc.fillColor('#555').fontSize(8.5).font('Helvetica')
+             .text(`Kategori: ${catLabel}   ·   Bulan: ${monthLabel}   ·   (sambungan)`, textX, 40, { width:textW });
+          doc.fillColor('#888').fontSize(7.5)
+             .text(`Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`, MX, HEADER_H - 18, { width:CONTENT_W, align:'right' });
         }
-        return 44;
+        return HEADER_H;
       }
 
       function drawTableHeader(y) {
@@ -993,59 +1087,77 @@ app.get('/api/penyata/excel', requireAuth, async (req, res) => {
     if (fsLib.existsSync(logoPath)) {
       try {
         const imgId = wb.addImage({ filename:logoPath, extension:'png' });
-        ws.addImage(imgId, { tl:{ col:0.1, row:0.1 }, ext:{ width:90, height:75 } });
+        // Place logo in rows 1-6, columns A-B — larger and clear
+        ws.addImage(imgId, { tl:{ col:0.08, row:0.08 }, ext:{ width:110, height:92 } });
       } catch(e) { console.error('Excel logo error:', e.message); }
     }
 
-    // Row heights for header area
-    [1,2,3,4,5].forEach((r,i) => { ws.getRow(r).height = [20,22,28,20,18][i]; });
-    ws.getRow(6).height = 8; // spacer
+    // Row heights for header area — more breathing room
+    ws.getRow(1).height = 10;  // top padding
+    ws.getRow(2).height = 28;  // org name row
+    ws.getRow(3).height = 8;   // gold accent spacer
+    ws.getRow(4).height = 22;  // report title
+    ws.getRow(5).height = 16;  // filter info
+    ws.getRow(6).height = 16;  // print date
+    ws.getRow(7).height = 10;  // bottom padding before headers
 
     // Org name — row 2, cols C-J
     ws.mergeCells('C2:J2');
     Object.assign(ws.getCell('C2'), {
       value:'SISTEM PENGURUSAN KEWANGAN VOT',
-      font:{ name:'Calibri', bold:true, size:16, color:{ argb:NAVY } },
-      alignment:{ horizontal:'center', vertical:'middle' }
+      font:{ name:'Calibri', bold:true, size:18, color:{ argb:NAVY } },
+      alignment:{ horizontal:'left', vertical:'middle' }
     });
 
-    // Report title — row 3
+    // Gold accent row 3
     ws.mergeCells('C3:J3');
-    Object.assign(ws.getCell('C3'), {
-      value:'PENYATA TRANSAKSI',
-      font:{ name:'Calibri', bold:true, size:13, color:{ argb:NAVY } },
-      alignment:{ horizontal:'center', vertical:'middle' }
-    });
+    ws.getCell('C3').fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFC8A951' } };
 
-    // Separator line — row 4
-    ws.mergeCells('A4:J4');
-    ws.getCell('A4').border = { bottom:{ style:'medium', color:{ argb:NAVY } } };
+    // Report title — row 4
+    ws.mergeCells('C4:J4');
+    Object.assign(ws.getCell('C4'), {
+      value:'PENYATA TRANSAKSI',
+      font:{ name:'Calibri', bold:true, size:13, color:{ argb:'FF2C4A8C' } },
+      alignment:{ horizontal:'left', vertical:'middle' }
+    });
 
     // Filter info — row 5
-    ws.mergeCells('A5:J5');
-    Object.assign(ws.getCell('A5'), {
-      value:`Kategori: ${catLabel}   |   Bulan: ${monthLabel}   |   Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`,
-      font:{ name:'Calibri', size:10, italic:true, color:{ argb:'FF555555' } },
-      alignment:{ horizontal:'center', vertical:'middle' }
+    ws.mergeCells('C5:J5');
+    Object.assign(ws.getCell('C5'), {
+      value:`Kategori: ${catLabel}   |   Bulan: ${monthLabel}`,
+      font:{ name:'Calibri', size:10, color:{ argb:'FF444444' } },
+      alignment:{ horizontal:'left', vertical:'middle' }
     });
 
-    // Column headers — row 7
+    // Print date — row 6
+    ws.mergeCells('C6:J6');
+    Object.assign(ws.getCell('C6'), {
+      value:`Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`,
+      font:{ name:'Calibri', size:9, italic:true, color:{ argb:'FF777777' } },
+      alignment:{ horizontal:'left', vertical:'middle' }
+    });
+
+    // Navy separator before table header — row 7 cells
+    for (let c = 1; c <= 10; c++) {
+      ws.getCell(7, c).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:NAVY } };
+    }
+
+    // Column headers — row 8
     const headers = ['No.','Tarikh','Rujukan','Kepala VOT','Dibayar Kepada','Perkara','Kategori','Bayaran (RM)','J. Bayaran (RM)','Baki (RM)'];
-    const hRow = ws.getRow(7);
-    hRow.height = 22;
+    const hRow = ws.getRow(8);
+    hRow.height = 24;
     headers.forEach((h, ci) => {
       const cell = hRow.getCell(ci+1);
       cell.value = h;
-      cell.font = { name:'Calibri', bold:true, size:9.5, color:{ argb:WHITE } };
+      cell.font = { name:'Calibri', bold:true, size:10, color:{ argb:WHITE } };
       cell.fill = navyFill();
       cell.alignment = { horizontal: ci>=7?'right':'center', vertical:'middle', wrapText:true };
-      cell.border = { bottom:{ style:'thin', color:{ argb:'FF999999' } } };
     });
 
-    // Data rows (start at row 8)
+    // Data rows (start at row 9)
     let totalBayaran=0, totalJumlah=0;
     data.forEach((row, idx) => {
-      const rn = 8 + idx;
+      const rn = 9 + idx;
       const dgRow = ws.getRow(rn);
       dgRow.height = 15;
       const isEven = idx%2===0;
@@ -1072,7 +1184,7 @@ app.get('/api/penyata/excel', requireAuth, async (req, res) => {
     const lastBaki = data.length>0 ? (parseFloat(data[data.length-1].baki)||0) : 0;
 
     // Totals row
-    const totRn = 8 + data.length;
+    const totRn = 9 + data.length;
     const totRow = ws.getRow(totRn);
     totRow.height = 22;
     ['','','','','','JUMLAH KESELURUHAN','',totalBayaran,totalJumlah,lastBaki].forEach((val,ci)=>{

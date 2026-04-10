@@ -212,11 +212,10 @@
             <thead>
               <tr>
                 <th>Tarikh</th>
-                <th>Rujukan</th>
-                <th>Kepala VOT</th>
-                <th>Dibayar Kepada</th>
-                <th>Perkara</th>
-                <th>Bayaran</th>
+                <th>Nama / Dibayar Kepada</th>
+                <th>Rujukan / Perkara</th>
+                <th>Kod Peruntukan</th>
+                <th>Amaunt Bayaran</th>
                 <th>Jumlah Bayaran</th>
                 <th>Baki</th>
               </tr>
@@ -258,11 +257,10 @@
             <thead>
               <tr>
                 <th>Tarikh</th>
-                <th>Rujukan</th>
-                <th>Kepala VOT</th>
-                <th>Dibayar Kepada</th>
-                <th>Perkara</th>
-                <th>Bayaran</th>
+                <th>Nama / Dibayar Kepada</th>
+                <th>Rujukan / Perkara</th>
+                <th>Kod Peruntukan</th>
+                <th>Amaunt Bayaran</th>
                 <th>Jumlah Bayaran</th>
                 <th>Baki</th>
               </tr>
@@ -304,11 +302,10 @@
             <thead>
               <tr>
                 <th>Tarikh</th>
-                <th>Rujukan</th>
-                <th>Kepala VOT</th>
-                <th>Dibayar Kepada</th>
-                <th>Perkara</th>
-                <th>Bayaran</th>
+                <th>Nama / Dibayar Kepada</th>
+                <th>Rujukan / Perkara</th>
+                <th>Kod Peruntukan</th>
+                <th>Amaunt Bayaran</th>
                 <th>Jumlah Bayaran</th>
                 <th>Baki</th>
               </tr>
@@ -350,11 +347,10 @@
             <thead>
               <tr>
                 <th>Tarikh</th>
-                <th>Rujukan</th>
-                <th>Kepala VOT</th>
-                <th>Dibayar Kepada</th>
-                <th>Perkara</th>
-                <th>Bayaran</th>
+                <th>Nama / Dibayar Kepada</th>
+                <th>Rujukan / Perkara</th>
+                <th>Kod Peruntukan</th>
+                <th>Amaunt Bayaran</th>
                 <th>Jumlah Bayaran</th>
                 <th>Baki</th>
               </tr>
@@ -396,11 +392,10 @@
             <thead>
               <tr>
                 <th>Tarikh</th>
-                <th>Rujukan</th>
-                <th>Kepala VOT</th>
-                <th>Dibayar Kepada</th>
-                <th>Perkara</th>
-                <th>Bayaran</th>
+                <th>Nama / Dibayar Kepada</th>
+                <th>Rujukan / Perkara</th>
+                <th>Kod Peruntukan</th>
+                <th>Amaunt Bayaran</th>
                 <th>Jumlah Bayaran</th>
                 <th>Baki</th>
               </tr>
@@ -442,11 +437,10 @@
             <thead>
               <tr>
                 <th>Tarikh</th>
-                <th>Rujukan</th>
-                <th>Kepala VOT</th>
-                <th>Dibayar Kepada</th>
-                <th>Perkara</th>
-                <th>Bayaran</th>
+                <th>Nama / Dibayar Kepada</th>
+                <th>Rujukan / Perkara</th>
+                <th>Kod Peruntukan</th>
+                <th>Amaunt Bayaran</th>
                 <th>Jumlah Bayaran</th>
                 <th>Baki</th>
               </tr>
@@ -487,6 +481,24 @@
             </div>
             <div id="kvMsg" style="margin-top:10px;font-size:0.85rem;"></div>
           </div>
+          <!-- Category filter -->
+          <div style="max-width:700px;margin:0 auto 14px;display:flex;align-items:center;gap:12px;">
+            <div style="display:flex;align-items:center;gap:8px;background:#f4f6ff;border:1.5px solid #d0d8f8;border-radius:9px;padding:8px 16px;flex:1;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+              <label style="font-size:12px;font-weight:700;color:#667eea;white-space:nowrap;">Tapis Kategori:</label>
+              <select id="kvFilterCategory" onchange="loadKepalaVotAdmin()" style="border:none;background:transparent;font-size:13px;font-weight:600;color:#333;cursor:pointer;outline:none;flex:1;">
+                <option value="">Semua Kategori</option>
+                <option value="perbekalan">Perbekalan</option>
+                <option value="pembangunan">Pembangunan</option>
+                <option value="gaji">Gaji</option>
+                <option value="operasi">Operasi</option>
+                <option value="penyelenggaraan">Penyelenggaraan</option>
+                <option value="utiliti">Utiliti</option>
+              </select>
+            </div>
+            <span id="kvCountBadge" style="font-size:12px;color:#888;white-space:nowrap;"></span>
+          </div>
+
           <div class="table-wrapper" style="max-width:700px;margin:0 auto;">
             <table class="data-table" id="kepalaVotAdminTable">
               <thead>
@@ -633,16 +645,28 @@
               </select>
             </div>
           </div>
-          <div style="margin-bottom: 20px;">
+
+          <!-- Action toolbar -->
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;">
             <button class="export-btn export-pdf" onclick="exportData('pdf')">📄 Export PDF</button>
             <button class="export-btn export-excel" onclick="exportData('excel')">📊 Export Excel</button>
             <button class="export-btn export-csv" onclick="exportData('csv')">📋 Export CSV</button>
-            <button class="btn" onclick="window.location.href='/data-entry'" style="display: inline-block; width: auto; padding: 10px 20px;">➕ Tambah Data</button>
+            <button class="btn" onclick="window.location.href='/data-entry'" style="display:inline-block;width:auto;padding:10px 20px;">➕ Tambah Data</button>
+            <div style="flex:1;"></div>
+            <!-- Bulk action bar (hidden until rows selected) -->
+            <div id="bulkActionBar" style="display:none;align-items:center;gap:8px;">
+              <span id="selectedCount" style="font-weight:700;color:#667eea;font-size:13px;"></span>
+              <button class="btn" style="background:#e74c3c;color:#fff;padding:8px 16px;font-size:13px;border:none;" onclick="deleteSelectedData()">🗑️ Padam Terpilih</button>
+            </div>
           </div>
+
           <div class="table-wrapper">
           <table class="data-table" id="dataTable">
             <thead>
               <tr>
+                <th style="width:36px;text-align:center;">
+                  <input type="checkbox" id="selectAllData" title="Pilih Semua" onchange="toggleSelectAll(this)" style="width:15px;height:15px;cursor:pointer;">
+                </th>
                 <th>Tarikh</th>
                 <th>Rujukan</th>
                 <th>Kepala VOT</th>
@@ -662,6 +686,26 @@
           </div>
           <div class="empty-message" id="emptyMessage" style="display: none;">
             No data available. <a href="#" onclick="switchView('data'); return false;">Add some data</a>
+          </div>
+          <!-- Delete All button below table -->
+          <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+            <button onclick="confirmDeleteAll()" style="
+              display:inline-flex;align-items:center;gap:7px;
+              background:linear-gradient(135deg,#fff5f5,#ffe8e8);
+              border:1.5px solid #e8b4b4;
+              color:#c0392b;
+              font-size:12.5px;font-weight:600;
+              padding:8px 18px;border-radius:8px;
+              cursor:pointer;letter-spacing:0.3px;
+              box-shadow:0 2px 8px rgba(192,57,43,0.10);
+              transition:all 0.2s ease;
+            "
+            onmouseover="this.style.background='linear-gradient(135deg,#fdeaea,#fad4d4)';this.style.borderColor='#c0392b';this.style.boxShadow='0 4px 14px rgba(192,57,43,0.18)';"
+            onmouseout="this.style.background='linear-gradient(135deg,#fff5f5,#ffe8e8)';this.style.borderColor='#e8b4b4';this.style.boxShadow='0 2px 8px rgba(192,57,43,0.10)';"
+            title="Buang semua data dalam jadual">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              Buang Semua Data
+            </button>
           </div>
         </div>
 
@@ -685,6 +729,9 @@
                 <th>Jabatan</th>
                 <th>Telefon</th>
                 <th>Tarikh Daftar</th>
+                <th>🟢 Last Login</th>
+                <th>🔴 Last Logout</th>
+                <th>Sejarah</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -860,6 +907,32 @@
     </div>
   </div>
 
+  <!-- Login History Modal -->
+  <div id="loginHistoryModal" class="modal" style="z-index:1200;overflow-y:auto;display:none;align-items:flex-start;justify-content:center;">
+    <div class="modal-content" style="max-width:600px;width:92%;margin:30px auto;">
+      <span class="close" onclick="closeLoginHistoryModal()">&times;</span>
+      <h2>📋 Sejarah Login/Logout</h2>
+      <p id="loginHistoryUsername" style="color:#667eea;font-weight:700;margin:0 0 14px;"></p>
+      <div class="table-wrapper" style="max-height:420px;overflow-y:auto;">
+        <table class="data-table" style="font-size:13px;">
+          <thead>
+            <tr>
+              <th style="width:30px;">#</th>
+              <th>Tindakan</th>
+              <th>Tarikh &amp; Masa</th>
+              <th>IP Address</th>
+            </tr>
+          </thead>
+          <tbody id="loginHistoryBody"></tbody>
+        </table>
+      </div>
+      <div id="loginHistoryEmpty" style="text-align:center;padding:24px;color:#999;display:none;">Tiada sejarah login.</div>
+      <div style="margin-top:14px;text-align:right;">
+        <button class="btn btn-cancel" onclick="closeLoginHistoryModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const months = {
       '01': 'Januari', '02': 'Februari', '03': 'Maret', '04': 'April',
@@ -934,6 +1007,12 @@
       } catch (error) {
         console.error('Error loading user info:', error);
       }
+    }
+
+    // Format monetary value with RM prefix and comma separator
+    function fmtRM(val) {
+      const num = parseFloat(val) || 0;
+      return 'RM ' + num.toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     // Switch between views
@@ -1087,15 +1166,16 @@
             filteredData.forEach(item => {
               const row = document.createElement('tr');
               const bakiColor = item._baki < 0 ? 'color:#e74c3c;font-weight:700;' : '';
+              const rujukanPerkara = [item.rujukan, item.perkara].filter(Boolean).join('<br><small style="color:#888;">')
+                + (item.rujukan && item.perkara ? '</small>' : '');
               row.innerHTML = `
-                <td>${item.tarikh || '-'}</td>
-                <td>${item.rujukan || '-'}</td>
-                <td>${item.kepala_vot || '-'}</td>
+                <td style="white-space:nowrap;">${item.tarikh || '-'}</td>
                 <td>${item.dibayar_kepada || '-'}</td>
-                <td>${item.perkara || '-'}</td>
-                <td>RM ${parseFloat(item.bayaran || 0).toFixed(2)}</td>
-                <td>RM ${item._jumlah.toFixed(2)}</td>
-                <td style="${bakiColor}">RM ${item._baki.toFixed(2)}</td>
+                <td>${rujukanPerkara || '-'}</td>
+                <td style="white-space:nowrap;">${item.kepala_vot || '-'}</td>
+                <td style="text-align:right;">${fmtRM(item.bayaran)}</td>
+                <td style="text-align:right;">${fmtRM(item._jumlah)}</td>
+                <td style="text-align:right;${bakiColor}">${fmtRM(item._baki)}</td>
               `;
               tbody.appendChild(row);
             });
@@ -1104,14 +1184,14 @@
             summaryRow.style.cssText = 'background:#f0f4ff;font-weight:700;';
             const lastItem = filteredData[filteredData.length - 1];
             summaryRow.innerHTML = `
-              <td colspan="5" style="text-align:right;color:#667eea;">Peruntukan: RM ${peruntukan.toFixed(2)}</td>
-              <td>RM ${filteredData.reduce((s,i) => s + (parseFloat(i.bayaran)||0), 0).toFixed(2)}</td>
-              <td>RM ${lastItem._jumlah.toFixed(2)}</td>
-              <td style="${lastItem._baki < 0 ? 'color:#e74c3c;' : 'color:#27ae60;'}">RM ${lastItem._baki.toFixed(2)}</td>
+              <td colspan="4" style="text-align:right;color:#667eea;">Peruntukan: ${fmtRM(peruntukan)}</td>
+              <td style="text-align:right;">${fmtRM(filteredData.reduce((s,i) => s + (parseFloat(i.bayaran)||0), 0))}</td>
+              <td style="text-align:right;">${fmtRM(lastItem._jumlah)}</td>
+              <td style="text-align:right;${lastItem._baki < 0 ? 'color:#e74c3c;' : 'color:#27ae60;'}">${fmtRM(lastItem._baki)}</td>
             `;
             tbody.appendChild(summaryRow);
           } else {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">Tiada data dijumpai</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Tiada data dijumpai</td></tr>';
           }
         }
       } catch (error) {
@@ -1152,9 +1232,9 @@
             totalBaki += parseFloat(item.baki) || 0;
           });
 
-          document.getElementById('totalBayaran').textContent = 'RM ' + totalBayaran.toFixed(2);
-          document.getElementById('totalJumlahBayaran').textContent = 'RM ' + totalJumlahBayaran.toFixed(2);
-          document.getElementById('totalBaki').textContent = 'RM ' + totalBaki.toFixed(2);
+          document.getElementById('totalBayaran').textContent = fmtRM(totalBayaran);
+          document.getElementById('totalJumlahBayaran').textContent = fmtRM(totalJumlahBayaran);
+          document.getElementById('totalBaki').textContent = fmtRM(totalBaki);
 
           // Category-specific statistics
           const categories = ['perbekalan', 'pembangunan', 'gaji', 'operasi', 'penyelenggaraan', 'utiliti'];
@@ -1176,23 +1256,39 @@
 
               const categoryCard = document.createElement('div');
               categoryCard.className = 'stat-card category-stat';
+              const catColors = {
+                perbekalan: 'linear-gradient(135deg,#667eea,#764ba2)',
+                pembangunan: 'linear-gradient(135deg,#11998e,#38ef7d)',
+                gaji: 'linear-gradient(135deg,#f7971e,#ffd200)',
+                operasi: 'linear-gradient(135deg,#ee0979,#ff6a00)',
+                penyelenggaraan: 'linear-gradient(135deg,#4facfe,#00f2fe)',
+                utiliti: 'linear-gradient(135deg,#43e97b,#38f9d7)',
+              };
+              const catIcons = {
+                perbekalan: '📦', pembangunan: '🏗️', gaji: '💰',
+                operasi: '⚙️', penyelenggaraan: '🔧', utiliti: '💡',
+              };
+              const gradient = catColors[category.toLowerCase()] || 'linear-gradient(135deg,#667eea,#764ba2)';
+              const icon = catIcons[category.toLowerCase()] || '📊';
               categoryCard.innerHTML = `
-                <h3>${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
+                <h3 style="background:${gradient};">${icon} ${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
+                <div class="stat-body">
                 <div class="stat-item">
-                  <span class="stat-label">Entries:</span>
+                  <span class="stat-label">📋 Entries</span>
                   <span class="stat-value">${categoryData.length}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">Total Bayaran:</span>
-                  <span class="stat-value">RM ${catBayaran.toFixed(2)}</span>
+                  <span class="stat-label">💳 Total Bayaran</span>
+                  <span class="stat-value">${fmtRM(catBayaran)}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">Total Jumlah Bayaran:</span>
-                  <span class="stat-value">RM ${catJumlahBayaran.toFixed(2)}</span>
+                  <span class="stat-label">🧾 Jumlah Bayaran</span>
+                  <span class="stat-value">${fmtRM(catJumlahBayaran)}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">Total Baki:</span>
-                  <span class="stat-value">RM ${catBaki.toFixed(2)}</span>
+                  <span class="stat-label">💼 Total Baki</span>
+                  <span class="stat-value">${fmtRM(catBaki)}</span>
+                </div>
                 </div>
               `;
               categoryStatsContainer.appendChild(categoryCard);
@@ -1210,12 +1306,21 @@
 
     async function loadKepalaVotAdmin() {
       const tbody = document.getElementById('kepalaVotAdminBody');
+      const filterEl = document.getElementById('kvFilterCategory');
+      const filterCat = filterEl ? filterEl.value : '';
       try {
         const resp = await fetch('/api/kepala-vot', { credentials: 'same-origin' });
         const result = await resp.json();
         if (!result.success) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Ralat memuatkan data.</td></tr>'; return; }
-        if (!result.data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Tiada Kepala VOT didaftarkan.</td></tr>'; return; }
-        tbody.innerHTML = result.data.map((kv, i) => {
+        const all = result.data;
+        const filtered = filterCat ? all.filter(kv => (kv.category||'').toLowerCase() === filterCat) : all;
+        const badge = document.getElementById('kvCountBadge');
+        if (badge) badge.textContent = filtered.length + ' rekod' + (filterCat ? ' dalam kategori ini' : ' keseluruhan');
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#888;">Tiada Kepala VOT' + (filterCat ? ' untuk kategori ini.' : ' didaftarkan.') + '</td></tr>';
+          return;
+        }
+        tbody.innerHTML = filtered.map((kv, i) => {
           const cat = (kv.category || 'umum').toLowerCase();
           const col = catColor[cat] || '#95a5a6';
           const lbl = catLabel[cat] || cat;
@@ -1301,8 +1406,9 @@
           
           data.forEach(item => {
             const row = document.createElement('tr');
-            const imageHtml = item.image ? `<img src="${item.image}" alt="Gambar" style="max-width: 100px; max-height: 100px;">` : '-';
+            row.dataset.id = item.id;
             row.innerHTML = `
+              <td style="text-align:center;"><input type="checkbox" class="row-checkbox" value="${item.id}" onchange="updateBulkBar()" style="width:15px;height:15px;cursor:pointer;"></td>
               <td>${item.tarikh || '-'}</td>
               <td>${item.rujukan || '-'}</td>
               <td>${item.kepala_vot || '-'}</td>
@@ -1310,13 +1416,17 @@
               <td>${item.perkara || '-'}</td>
               <td>${item.category || '-'}</td>
               <td>${item.liabiliti || '-'}</td>
-              <td>RM ${parseFloat(item.bayaran || 0).toFixed(2)}</td>
-              <td>RM ${parseFloat(item.jumlah_bayaran || 0).toFixed(2)}</td>
-              <td>RM ${parseFloat(item.baki || 0).toFixed(2)}</td>
+              <td>${fmtRM(item.bayaran)}</td>
+              <td>${fmtRM(item.jumlah_bayaran)}</td>
+              <td>${fmtRM(item.baki)}</td>
               <td><button class="delete-btn" onclick="deleteData(${item.id})">Delete</button></td>
             `;
             tbody.appendChild(row);
           });
+          // Reset select-all & bulk bar
+          const selAll = document.getElementById('selectAllData');
+          if (selAll) selAll.checked = false;
+          updateBulkBar();
           document.getElementById('emptyMessage').style.display = 'none';
         } else {
           document.getElementById('emptyMessage').style.display = 'block';
@@ -1363,9 +1473,9 @@
           const row = document.createElement('tr');
           row.innerHTML = `
             <td><strong>${labels[cat]}</strong></td>
-            <td>RM ${peruntukan.toFixed(2)}</td>
-            <td>RM ${jumlah.toFixed(2)}</td>
-            <td style="${bakiColor}">RM ${baki.toFixed(2)}</td>
+            <td>${fmtRM(peruntukan)}</td>
+            <td>${fmtRM(jumlah)}</td>
+            <td style="${bakiColor}">${fmtRM(baki)}</td>
             <td><button onclick="prefillBudget('${cat}', ${peruntukan})"
               style="padding:4px 10px;font-size:11px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;">
               Edit</button></td>
@@ -1494,6 +1604,73 @@
         }
         noticesContainer.style.display = 'none';
         emptyMessage.style.display = 'block';
+      }
+    }
+
+    // Checkbox helpers
+    function toggleSelectAll(cb) {
+      document.querySelectorAll('.row-checkbox').forEach(box => { box.checked = cb.checked; });
+      updateBulkBar();
+    }
+
+    function updateBulkBar() {
+      const checked = document.querySelectorAll('.row-checkbox:checked');
+      const bar = document.getElementById('bulkActionBar');
+      const countEl = document.getElementById('selectedCount');
+      // Sync select-all state
+      const all = document.querySelectorAll('.row-checkbox');
+      const selAll = document.getElementById('selectAllData');
+      if (selAll) selAll.checked = all.length > 0 && checked.length === all.length;
+      if (checked.length > 0) {
+        bar.style.display = 'flex';
+        countEl.textContent = `${checked.length} rekod dipilih`;
+      } else {
+        bar.style.display = 'none';
+      }
+    }
+
+    // Batch delete selected
+    async function deleteSelectedData() {
+      const checked = document.querySelectorAll('.row-checkbox:checked');
+      if (checked.length === 0) return;
+      if (!confirm(`Padam ${checked.length} rekod yang dipilih? Tindakan ini tidak boleh dibatalkan.`)) return;
+      const ids = Array.from(checked).map(cb => parseInt(cb.value));
+      try {
+        const res = await fetch('/api/data', {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids })
+        });
+        const result = await res.json();
+        if (result.success) {
+          loadData();
+        } else {
+          alert('Ralat: ' + result.error);
+        }
+      } catch (e) {
+        alert('Ralat menyambung ke pelayan');
+      }
+    }
+
+    // Delete ALL data
+    async function confirmDeleteAll() {
+      if (!confirm('⚠️ AMARAN: Ini akan memadam SEMUA data dalam sistem!\n\nAdakah anda pasti?')) return;
+      if (!confirm('Pengesahan terakhir — tekan OK untuk memadam semua data.')) return;
+      try {
+        const res = await fetch('/api/data-all', {
+          method: 'DELETE',
+          credentials: 'same-origin'
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert(`✅ ${result.deleted} rekod telah dipadam.`);
+          loadData();
+        } else {
+          alert('Ralat: ' + result.error);
+        }
+      } catch (e) {
+        alert('Ralat menyambung ke pelayan');
       }
     }
 
@@ -1700,20 +1877,34 @@
     // Load Users
     async function loadUsers() {
       try {
-        const response = await fetch('/api/users', { credentials: 'same-origin' });
-        const result = await response.json();
+        const [usersResp, histResp] = await Promise.all([
+          fetch('/api/users', { credentials: 'same-origin' }),
+          fetch('/api/users/login-history', { credentials: 'same-origin' })
+        ]);
+        const usersResult = await usersResp.json();
+        const histResult = await histResp.json();
 
-        if (result.data) {
+        // Build a map: userId -> { last_login, last_logout }
+        const histMap = {};
+        if (histResult.success && histResult.data) {
+          histResult.data.forEach(h => { histMap[h.id] = h; });
+        }
+
+        if (usersResult.data) {
           const tbody = document.getElementById('userBody');
           tbody.innerHTML = '';
 
-          if (result.data.length > 0) {
-            result.data.forEach(user => {
+          if (usersResult.data.length > 0) {
+            usersResult.data.forEach(user => {
               const row = document.createElement('tr');
               const date = new Date(user.created_at).toLocaleDateString('ms-MY');
               const avatarHtml = user.profile_pic
                 ? `<img src="${user.profile_pic}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #667eea;" alt="">`
                 : `<div style="width:36px;height:36px;border-radius:50%;background:#667eea;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;margin:0 auto;">${(user.nama || user.username).charAt(0).toUpperCase()}</div>`;
+
+              const hist = histMap[user.id] || {};
+              const fmtDT = (dt) => dt ? new Date(dt).toLocaleString('ms-MY', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '<span style="color:#ccc;">—</span>';
+
               row.innerHTML = `
                 <td>${user.id}</td>
                 <td style="text-align:center;">${avatarHtml}</td>
@@ -1724,6 +1915,9 @@
                 <td>${user.jabatan || '-'}</td>
                 <td>${user.telefon || '-'}</td>
                 <td>${date}</td>
+                <td style="color:#27ae60;font-size:12px;white-space:nowrap;">${fmtDT(hist.last_login)}</td>
+                <td style="color:#e74c3c;font-size:12px;white-space:nowrap;">${fmtDT(hist.last_logout)}</td>
+                <td><button class="btn" style="padding:4px 10px;font-size:12px;" onclick="openLoginHistoryModal(${user.id}, '${user.username}')">📋 Sejarah</button></td>
                 <td>
                   ${user.id !== 1 ? `<button class="btn btn-delete" onclick="deleteUser(${user.id})">Delete</button>` : '<span style="color: #999;">Admin</span>'}
                 </td>
@@ -1864,6 +2058,47 @@
         document.getElementById('profileUploadMsg').style.color = 'red';
         document.getElementById('profileUploadMsg').textContent = '❌ Ralat menyambung ke pelayan';
       }
+    }
+
+    // Login History Modal
+    async function openLoginHistoryModal(userId, username) {
+      document.getElementById('loginHistoryUsername').textContent = '👤 ' + username;
+      document.getElementById('loginHistoryBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;padding:16px;">Memuatkan...</td></tr>';
+      document.getElementById('loginHistoryEmpty').style.display = 'none';
+      const modal = document.getElementById('loginHistoryModal');
+      modal.style.display = 'flex';
+      modal.scrollTop = 0;
+
+      try {
+        const res = await fetch(`/api/users/${userId}/login-history`, { credentials: 'same-origin' });
+        const result = await res.json();
+        const tbody = document.getElementById('loginHistoryBody');
+        tbody.innerHTML = '';
+
+        if (result.success && result.data.length > 0) {
+          result.data.forEach((log, i) => {
+            const tr = document.createElement('tr');
+            const dt = new Date(log.logged_at).toLocaleString('ms-MY', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+            const isLogin = log.action === 'login';
+            tr.innerHTML = `
+              <td style="color:#999;font-size:12px;">${i + 1}</td>
+              <td><span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;background:${isLogin ? '#e8f5e9' : '#fdecea'};color:${isLogin ? '#27ae60' : '#e74c3c'};">${isLogin ? '🟢 Login' : '🔴 Logout'}</span></td>
+              <td style="font-size:12px;white-space:nowrap;">${dt}</td>
+              <td style="font-size:12px;color:#888;">${log.ip_address || '—'}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          tbody.innerHTML = '';
+          document.getElementById('loginHistoryEmpty').style.display = 'block';
+        }
+      } catch (e) {
+        document.getElementById('loginHistoryBody').innerHTML = '<tr><td colspan="4" style="color:red;text-align:center;">Ralat memuatkan data</td></tr>';
+      }
+    }
+
+    function closeLoginHistoryModal() {
+      document.getElementById('loginHistoryModal').style.display = 'none';
     }
 
     // Delete User
