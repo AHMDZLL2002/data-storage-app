@@ -784,8 +784,8 @@
   </div>
 
   <!-- Add User Modal -->
-  <div id="addUserModal" class="modal" style="z-index:1100;">
-    <div class="modal-content" style="max-width:560px;max-height:90vh;overflow-y:auto;">
+  <div id="addUserModal" class="modal" style="z-index:1100;overflow-y:auto;display:none;align-items:flex-start;justify-content:center;">
+    <div class="modal-content" style="max-width:560px;width:90%;margin:30px auto;">
       <span class="close" onclick="closeAddUserModal()">&times;</span>
       <h2>➕ Tambah Pengguna Baru</h2>
       <form id="addUserForm" enctype="multipart/form-data">
@@ -840,8 +840,8 @@
   </div>
 
   <!-- Profile Upload Modal (for current user) -->
-  <div id="profileUploadModal" class="modal" style="z-index:1100;">
-    <div class="modal-content" style="max-width:400px;">
+  <div id="profileUploadModal" class="modal" style="z-index:1100;overflow-y:auto;display:none;align-items:flex-start;justify-content:center;">
+    <div class="modal-content" style="max-width:400px;width:90%;margin:30px auto;">
       <span class="close" onclick="closeProfileUploadModal()">&times;</span>
       <h2>🖼️ Gambar Profil Saya</h2>
       <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:10px 0;">
@@ -1744,7 +1744,9 @@
       document.getElementById('addUserForm').reset();
       document.getElementById('addUserAvatarPreview').innerHTML = '👤';
       document.getElementById('addUserMessage').textContent = '';
-      document.getElementById('addUserModal').style.display = 'block';
+      const modal = document.getElementById('addUserModal');
+      modal.style.display = 'flex';
+      modal.scrollTop = 0;
     }
 
     function closeAddUserModal() {
@@ -1814,7 +1816,9 @@
         const initials = document.getElementById('navAvatarInitials');
         preview.innerHTML = initials ? `<span style="font-size:44px;color:#667eea;font-weight:700;">${initials.textContent}</span>` : '👤';
       }
-      document.getElementById('profileUploadModal').style.display = 'block';
+      const modal = document.getElementById('profileUploadModal');
+      modal.style.display = 'flex';
+      modal.scrollTop = 0;
     }
 
     function closeProfileUploadModal() {
