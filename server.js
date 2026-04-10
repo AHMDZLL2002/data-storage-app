@@ -128,6 +128,31 @@ app.get('/api/user', requireAuth, (req, res) => {
     });
 });
 
+// Diagnostic endpoint - check persistent storage status
+app.get('/api/status', (req, res) => {
+  const dbPath = process.env.DB_PATH || path.join(__dirname, 'app.db');
+  const sessionDbPath = path.join(SESSION_DB_DIR, 'sessions.db');
+  const isPersistent = dbPath.startsWith('/var/data');
+  let dbSize = null;
+  let dbExists = false;
+  try {
+    const stat = fs.statSync(dbPath);
+    dbExists = true;
+    dbSize = (stat.size / 1024).toFixed(2) + ' KB';
+  } catch (e) { /* file not found */ }
+
+  res.json({
+    status: isPersistent ? 'PERSISTENT' : 'EPHEMERAL - DATA WILL BE LOST ON RESTART',
+    persistent: isPersistent,
+    db_path: dbPath,
+    db_exists: dbExists,
+    db_size: dbSize,
+    session_db: sessionDbPath,
+    node_env: process.env.NODE_ENV || 'development',
+    warning: !isPersistent ? 'DB_PATH env var not set to /var/data/app.db - disk not mounted!' : null
+  });
+});
+
 // Get user data or all data for dashboard views
 app.get('/api/data', requireAuth, (req, res) => {
   console.log('/api/data called - session userId:', req.session.userId, 'all=', req.query.all);
