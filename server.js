@@ -88,7 +88,11 @@ app.post('/api/logout', (req, res) => {
 // Get current user
 app.get('/api/user', requireAuth, (req, res) => {
   console.log('/api/user called - session userId:', req.session.userId);
-  res.json({ success: true, user: { id: req.session.userId, username: req.session.username } });
+  db.get('SELECT id, username, nama, no_pekerja, jawatan, jabatan, telefon, profile_pic FROM users WHERE id = ?',
+    [req.session.userId], (err, row) => {
+      if (err || !row) return res.json({ success: true, user: { id: req.session.userId, username: req.session.username } });
+      res.json({ success: true, user: row });
+    });
 });
 
 // Get user data or all data for dashboard views
@@ -184,7 +188,7 @@ app.get('/api/stats', requireAuth, (req, res) => {
 
 // Get all users (admin only)
 app.get('/api/users', requireAdmin, (req, res) => {
-  db.all('SELECT id, username, created_at FROM users ORDER BY id', (err, rows) => {
+  db.all('SELECT id, username, nama, no_pekerja, jawatan, jabatan, telefon, profile_pic, created_at FROM users ORDER BY id', (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
@@ -193,21 +197,37 @@ app.get('/api/users', requireAdmin, (req, res) => {
 });
 
 // Create new user (admin only)
-app.post('/api/users', requireAdmin, (req, res) => {
-  const { username, password } = req.body;
+app.post('/api/users', requireAdmin, upload.single('profile_pic'), (req, res) => {
+  const { username, password, nama, no_pekerja, jawatan, jabatan, telefon } = req.body;
   
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
-  db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, password], function(err) {
-    if (err) {
-      if (err.message.includes('UNIQUE')) {
-        return res.status(400).json({ error: 'Username already exists' });
+  const profile_pic = req.file ? '/uploads/' + req.file.filename : null;
+
+  db.run(
+    'INSERT INTO users (username, password, nama, no_pekerja, jawatan, jabatan, telefon, profile_pic) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [username, password, nama || null, no_pekerja || null, jawatan || null, jabatan || null, telefon || null, profile_pic],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE')) {
+          return res.status(400).json({ error: 'Username already exists' });
+        }
+        return res.status(500).json({ error: 'Database error' });
       }
-      return res.status(500).json({ error: 'Database error' });
+      res.json({ success: true, id: this.lastID });
     }
-    res.json({ success: true, id: this.lastID });
+  );
+});
+
+// Update own profile picture
+app.post('/api/user/profile-pic', requireAuth, upload.single('profile_pic'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const profile_pic = '/uploads/' + req.file.filename;
+  db.run('UPDATE users SET profile_pic = ? WHERE id = ?', [profile_pic, req.session.userId], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ success: true, profile_pic });
   });
 });
 
@@ -347,9 +367,14 @@ app.get('/', (req, res) => {
 });
 
 // ── Kepala VOT List API ─────────────────────────────────────────
-// Get all kepala vot options
+// Get kepala vot options, optional ?category= filter
 app.get('/api/kepala-vot', requireAuth, (req, res) => {
-  db.all('SELECT * FROM kepala_vot_list ORDER BY kod ASC', (err, rows) => {
+  const { category } = req.query;
+  const sql = category
+    ? 'SELECT * FROM kepala_vot_list WHERE LOWER(category) = LOWER(?) ORDER BY kod ASC'
+    : 'SELECT * FROM kepala_vot_list ORDER BY category ASC, kod ASC';
+  const params = category ? [category] : [];
+  db.all(sql, params, (err, rows) => {
     if (err) return res.status(500).json({ error: 'Database error' });
     res.json({ success: true, data: rows || [] });
   });
@@ -357,13 +382,11 @@ app.get('/api/kepala-vot', requireAuth, (req, res) => {
 
 // Add kepala vot option (admin only)
 app.post('/api/kepala-vot', requireAdmin, (req, res) => {
-  const { kod, keterangan } = req.body;
+  const { kod, keterangan, category } = req.body;
   if (!kod) return res.status(400).json({ error: 'Kod diperlukan' });
-  db.run('INSERT INTO kepala_vot_list (kod, keterangan) VALUES (?, ?)', [kod.trim(), keterangan || ''], function(err) {
-    if (err) {
-      if (err.message.includes('UNIQUE')) return res.status(400).json({ error: 'Kod sudah wujud' });
-      return res.status(500).json({ error: 'Database error' });
-    }
+  if (!category) return res.status(400).json({ error: 'Kategori diperlukan' });
+  db.run('INSERT INTO kepala_vot_list (kod, keterangan, category) VALUES (?, ?, ?)', [kod.trim(), keterangan || '', category.toLowerCase()], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
     res.json({ success: true, id: this.lastID });
   });
 });
@@ -711,6 +734,372 @@ app.get('/api/export/csv', requireAuth, (req, res) => {
     
     res.end(`\ufeff${csv}`); // Add BOM for UTF-8 Excel compatibility
   });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// PROFESSIONAL PENYATA PDF EXPORT
+// GET /api/penyata/pdf?category=perbekalan&month=01
+// ══════════════════════════════════════════════════════════════════
+app.get('/api/penyata/pdf', requireAuth, (req, res) => {
+  const { month, category } = req.query;
+  const monthNames = ['Januari','Februari','Mac','April','Mei','Juni','Julai','Ogos','September','Oktober','November','Disember'];
+
+  db.all('SELECT * FROM data ORDER BY category ASC, tarikh ASC, created_at ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+
+    let data = rows || [];
+    if (category) data = data.filter(r => (r.category||'').toLowerCase() === category.toLowerCase());
+    if (month) data = data.filter(r => {
+      if (!r.tarikh) return false;
+      return String(new Date(r.tarikh).getMonth() + 1).padStart(2,'0') === month;
+    });
+
+    try {
+      const PDFDocument = require('pdfkit');
+      const fsLib = require('fs');
+      const catLabel   = category ? category.charAt(0).toUpperCase()+category.slice(1) : 'Semua Kategori';
+      const monthLabel = month ? monthNames[parseInt(month)-1] : 'Semua Bulan';
+
+      const doc = new PDFDocument({ size:'A4', layout:'landscape', margin:0, bufferPages:true });
+      const filename = `Penyata_${catLabel}_${monthLabel}.pdf`.replace(/ /g,'_');
+      res.setHeader('Content-Type','application/pdf');
+      res.setHeader('Content-Disposition',`attachment; filename="${filename}"`);
+      doc.pipe(res);
+
+      const PW = doc.page.width;   // ≈ 842
+      const PH = doc.page.height;  // ≈ 595
+      const MX = 28;
+      const CONTENT_W = PW - MX * 2;
+      const NAVY = '#1a3a6b';
+      const LIGHT = '#eef2ff';
+
+      // columns (total ≈ 784 fits in CONTENT_W 786)
+      const cols = [
+        { h:'No.',            w:22,  a:'center', k:null              },
+        { h:'Tarikh',         w:62,  a:'left',   k:'tarikh'          },
+        { h:'Rujukan',        w:60,  a:'left',   k:'rujukan'         },
+        { h:'Kepala VOT',     w:68,  a:'left',   k:'kepala_vot'      },
+        { h:'Dibayar Kepada', w:100, a:'left',   k:'dibayar_kepada'  },
+        { h:'Perkara',        w:168, a:'left',   k:'perkara'         },
+        { h:'Kategori',       w:62,  a:'left',   k:'category'        },
+        { h:'Bayaran (RM)',   w:66,  a:'right',  k:'bayaran'         },
+        { h:'J. Bayaran',     w:70,  a:'right',  k:'jumlah_bayaran'  },
+        { h:'Baki (RM)',      w:66,  a:'right',  k:'baki'            },
+      ];
+      const ROW_H = 17;
+      const HDR_H = 22;
+      const FOOT_H = 20;
+
+      function drawHeader(isFirst) {
+        doc.rect(0, 0, PW, 40).fill('#f5f7fb');
+        doc.rect(0, 40, PW, 2).fill(NAVY);
+        const logoPath = path.join(__dirname,'public','images','logo-footer.png');
+        if (fsLib.existsSync(logoPath)) {
+          try { doc.image(logoPath, MX, 5, { width:30, height:30 }); } catch(e){}
+        }
+        if (isFirst) {
+          doc.fillColor(NAVY).fontSize(14).font('Helvetica-Bold')
+             .text('SISTEM PENGURUSAN KEWANGAN VOT', MX+38, 6, { width:CONTENT_W-38, align:'center' });
+          doc.fillColor('#444').fontSize(10).font('Helvetica')
+             .text('PENYATA TRANSAKSI', MX+38, 21, { width:CONTENT_W-38, align:'center' });
+          doc.fillColor('#666').fontSize(8)
+             .text(`Kategori: ${catLabel}  ·  Bulan: ${monthLabel}  ·  Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`, MX+38, 32, { width:CONTENT_W-38, align:'center' });
+        } else {
+          doc.fillColor(NAVY).fontSize(11).font('Helvetica-Bold')
+             .text('PENYATA TRANSAKSI (sambungan)', MX+38, 8, { width:CONTENT_W-38, align:'center' });
+          doc.fillColor('#666').fontSize(8).font('Helvetica')
+             .text(`Kategori: ${catLabel}  ·  Bulan: ${monthLabel}`, MX+38, 24, { width:CONTENT_W-38, align:'center' });
+        }
+        return 44;
+      }
+
+      function drawTableHeader(y) {
+        doc.rect(MX, y, CONTENT_W, HDR_H).fill(NAVY);
+        doc.fillColor('#fff').fontSize(7.5).font('Helvetica-Bold');
+        let x = MX;
+        cols.forEach(c => {
+          doc.text(c.h, x+3, y+(HDR_H-7.5)/2+1, { width:c.w-6, align:c.a });
+          x += c.w;
+        });
+        return y + HDR_H;
+      }
+
+      function drawRow(row, y, rowNum, even) {
+        doc.rect(MX, y, CONTENT_W, ROW_H).fill(even ? LIGHT : '#fff');
+        doc.rect(MX, y+ROW_H-0.5, CONTENT_W, 0.5).fill('#dde0f0');
+        doc.fillColor('#333').fontSize(7).font('Helvetica');
+        let x = MX;
+        cols.forEach(c => {
+          let val;
+          if (!c.k) {
+            val = String(rowNum);
+          } else if (['bayaran','jumlah_bayaran','baki'].includes(c.k)) {
+            const n = parseFloat(row[c.k]||0);
+            val = n.toFixed(2);
+            doc.fillColor(c.k==='baki' && n<0 ? '#c0392b' : '#333');
+          } else {
+            const raw = (row[c.k]||'-').toString();
+            const limit = c.k==='perkara' ? 48 : c.k==='dibayar_kepada' ? 22 : 20;
+            val = raw.length > limit ? raw.substring(0,limit)+'…' : raw;
+          }
+          doc.text(val, x+3, y+5, { width:c.w-6, align:c.a });
+          doc.fillColor('#333');
+          x += c.w;
+        });
+        return y + ROW_H;
+      }
+
+      function drawTotals(y, tot) {
+        doc.rect(MX, y, CONTENT_W, HDR_H).fill(NAVY);
+        doc.fillColor('#fff').fontSize(8).font('Helvetica-Bold');
+        let x = MX;
+        cols.forEach((c,ci) => {
+          let val = '';
+          if (ci===5) val='JUMLAH KESELURUHAN';
+          if (ci===7) val=tot.bayaran.toFixed(2);
+          if (ci===8) val=tot.jumlah.toFixed(2);
+          if (ci===9) val=tot.baki.toFixed(2);
+          doc.text(val, x+3, y+(HDR_H-8)/2+1, { width:c.w-6, align:c.a });
+          x += c.w;
+        });
+        return y + HDR_H;
+      }
+
+      // ── Render ───────────────────────────────────────────────────
+      let yPos = drawHeader(true);
+      yPos = drawTableHeader(yPos);
+      const tot = { bayaran:0, jumlah:0, baki:0 };
+
+      data.forEach((row, idx) => {
+        if (yPos + ROW_H > PH - FOOT_H - HDR_H) {
+          doc.addPage({ size:'A4', layout:'landscape', margin:0 });
+          yPos = drawHeader(false);
+          yPos = drawTableHeader(yPos);
+        }
+        yPos = drawRow(row, yPos, idx+1, idx%2===0);
+        tot.bayaran += parseFloat(row.bayaran)||0;
+        tot.jumlah  += parseFloat(row.jumlah_bayaran)||0;
+      });
+      tot.baki = data.length>0 ? (parseFloat(data[data.length-1].baki)||0) : 0;
+
+      if (yPos + HDR_H > PH - FOOT_H) {
+        doc.addPage({ size:'A4', layout:'landscape', margin:0 });
+        yPos = 50;
+      }
+      yPos = drawTotals(yPos, tot);
+
+      // Summary
+      if (yPos + 14 < PH - FOOT_H) {
+        doc.fillColor('#444').fontSize(8.5).font('Helvetica')
+           .text(`Jumlah Rekod: ${data.length}   ·   Jumlah Bayaran: RM ${tot.bayaran.toFixed(2)}   ·   Jumlah Keseluruhan: RM ${tot.jumlah.toFixed(2)}`, MX, yPos+6, { width:CONTENT_W });
+      }
+
+      // ── Footer on every page ─────────────────────────────────────
+      const pc = doc.bufferedPageRange().count;
+      for (let p=0; p<pc; p++) {
+        doc.switchToPage(p);
+        const fy = PH - 18;
+        doc.rect(0, fy-5, PW, 23).fill('#f0f2f8');
+        doc.rect(0, fy-6, PW, 1).fill(NAVY);
+        doc.fillColor('#666').fontSize(7).font('Helvetica');
+        doc.text(`Dijana pada: ${new Date().toLocaleString('ms-MY')}   ·   Sistem Pengurusan Kewangan VOT`, MX, fy, { width:CONTENT_W*0.7 });
+        doc.text(`Halaman ${p+1} daripada ${pc}`, MX+CONTENT_W*0.7, fy, { width:CONTENT_W*0.3, align:'right' });
+      }
+
+      doc.flushPages();
+      doc.end();
+    } catch(e) {
+      console.error('PDF penyata error:', e);
+      if (!res.headersSent) res.status(500).json({ error:'PDF generation failed' });
+    }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// PROFESSIONAL PENYATA EXCEL EXPORT
+// GET /api/penyata/excel?category=perbekalan&month=01
+// ══════════════════════════════════════════════════════════════════
+app.get('/api/penyata/excel', requireAuth, async (req, res) => {
+  const { month, category } = req.query;
+  const monthNames = ['Januari','Februari','Mac','April','Mei','Juni','Julai','Ogos','September','Oktober','November','Disember'];
+
+  try {
+    const rows = await new Promise((resolve, reject) => {
+      db.all('SELECT * FROM data ORDER BY category ASC, tarikh ASC, created_at ASC', [], (err, r) => {
+        if (err) reject(err); else resolve(r||[]);
+      });
+    });
+
+    let data = rows;
+    if (category) data = data.filter(r => (r.category||'').toLowerCase() === category.toLowerCase());
+    if (month) data = data.filter(r => {
+      if (!r.tarikh) return false;
+      return String(new Date(r.tarikh).getMonth()+1).padStart(2,'0') === month;
+    });
+
+    const ExcelJS  = require('exceljs');
+    const fsLib    = require('fs');
+    const catLabel   = category ? category.charAt(0).toUpperCase()+category.slice(1) : 'Semua Kategori';
+    const monthLabel = month ? monthNames[parseInt(month)-1] : 'Semua Bulan';
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Sistem Pengurusan Kewangan VOT';
+    wb.created = new Date();
+
+    const ws = wb.addWorksheet(`Penyata ${catLabel}`, {
+      pageSetup:{ paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1,
+                  margins:{ left:0.5, right:0.5, top:0.75, bottom:0.75, header:0.3, footer:0.3 } },
+      properties:{ defaultRowHeight:16 }
+    });
+
+    // Column widths [A..J]
+    ws.columns = [
+      { key:'no',         width:6  },
+      { key:'tarikh',     width:13 },
+      { key:'rujukan',    width:14 },
+      { key:'kepala',     width:15 },
+      { key:'dibayar',    width:22 },
+      { key:'perkara',    width:42 },
+      { key:'kategori',   width:14 },
+      { key:'bayaran',    width:16 },
+      { key:'jumlah',     width:18 },
+      { key:'baki',       width:15 },
+    ];
+
+    const NAVY  = 'FF1A3A6B';
+    const WHITE = 'FFFFFFFF';
+    const LBLUE = 'FFEEF2FF';
+    const REP   = 'FFCC0000';
+
+    const navyFill  = () => ({ type:'pattern', pattern:'solid', fgColor:{ argb:NAVY  } });
+    const whiteFill = () => ({ type:'pattern', pattern:'solid', fgColor:{ argb:WHITE } });
+    const lblueFill = () => ({ type:'pattern', pattern:'solid', fgColor:{ argb:LBLUE } });
+    const hairLine  = () => ({ bottom:{ style:'hair', color:{ argb:'FFDDDDDD' } } });
+
+    // ── Logo ─────────────────────────────────────────────────────
+    const logoPath = path.join(__dirname,'public','images','logo-footer.png');
+    if (fsLib.existsSync(logoPath)) {
+      try {
+        const imgId = wb.addImage({ filename:logoPath, extension:'png' });
+        ws.addImage(imgId, { tl:{ col:0.1, row:0.1 }, ext:{ width:90, height:75 } });
+      } catch(e) { console.error('Excel logo error:', e.message); }
+    }
+
+    // Row heights for header area
+    [1,2,3,4,5].forEach((r,i) => { ws.getRow(r).height = [20,22,28,20,18][i]; });
+    ws.getRow(6).height = 8; // spacer
+
+    // Org name — row 2, cols C-J
+    ws.mergeCells('C2:J2');
+    Object.assign(ws.getCell('C2'), {
+      value:'SISTEM PENGURUSAN KEWANGAN VOT',
+      font:{ name:'Calibri', bold:true, size:16, color:{ argb:NAVY } },
+      alignment:{ horizontal:'center', vertical:'middle' }
+    });
+
+    // Report title — row 3
+    ws.mergeCells('C3:J3');
+    Object.assign(ws.getCell('C3'), {
+      value:'PENYATA TRANSAKSI',
+      font:{ name:'Calibri', bold:true, size:13, color:{ argb:NAVY } },
+      alignment:{ horizontal:'center', vertical:'middle' }
+    });
+
+    // Separator line — row 4
+    ws.mergeCells('A4:J4');
+    ws.getCell('A4').border = { bottom:{ style:'medium', color:{ argb:NAVY } } };
+
+    // Filter info — row 5
+    ws.mergeCells('A5:J5');
+    Object.assign(ws.getCell('A5'), {
+      value:`Kategori: ${catLabel}   |   Bulan: ${monthLabel}   |   Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`,
+      font:{ name:'Calibri', size:10, italic:true, color:{ argb:'FF555555' } },
+      alignment:{ horizontal:'center', vertical:'middle' }
+    });
+
+    // Column headers — row 7
+    const headers = ['No.','Tarikh','Rujukan','Kepala VOT','Dibayar Kepada','Perkara','Kategori','Bayaran (RM)','J. Bayaran (RM)','Baki (RM)'];
+    const hRow = ws.getRow(7);
+    hRow.height = 22;
+    headers.forEach((h, ci) => {
+      const cell = hRow.getCell(ci+1);
+      cell.value = h;
+      cell.font = { name:'Calibri', bold:true, size:9.5, color:{ argb:WHITE } };
+      cell.fill = navyFill();
+      cell.alignment = { horizontal: ci>=7?'right':'center', vertical:'middle', wrapText:true };
+      cell.border = { bottom:{ style:'thin', color:{ argb:'FF999999' } } };
+    });
+
+    // Data rows (start at row 8)
+    let totalBayaran=0, totalJumlah=0;
+    data.forEach((row, idx) => {
+      const rn = 8 + idx;
+      const dgRow = ws.getRow(rn);
+      dgRow.height = 15;
+      const isEven = idx%2===0;
+      const vals = [
+        idx+1, row.tarikh||'-', row.rujukan||'-', row.kepala_vot||'-',
+        row.dibayar_kepada||'-', row.perkara||'-', row.category||'-',
+        parseFloat(row.bayaran)||0, parseFloat(row.jumlah_bayaran)||0, parseFloat(row.baki)||0
+      ];
+      vals.forEach((val, ci) => {
+        const cell = dgRow.getCell(ci+1);
+        cell.value = val;
+        cell.fill  = isEven ? lblueFill() : whiteFill();
+        cell.alignment = { vertical:'middle', horizontal: ci>=7?'right': ci===0?'center':'left' };
+        cell.border = hairLine();
+        const isNum = ci>=7;
+        const isNeg = ci===9 && typeof val==='number' && val<0;
+        cell.font = { name:'Calibri', size:9, color:{ argb: isNeg?REP:'FF333333' } };
+        if (isNum) cell.numFmt = '#,##0.00';
+      });
+      totalBayaran += parseFloat(row.bayaran)||0;
+      totalJumlah  += parseFloat(row.jumlah_bayaran)||0;
+    });
+
+    const lastBaki = data.length>0 ? (parseFloat(data[data.length-1].baki)||0) : 0;
+
+    // Totals row
+    const totRn = 8 + data.length;
+    const totRow = ws.getRow(totRn);
+    totRow.height = 22;
+    ['','','','','','JUMLAH KESELURUHAN','',totalBayaran,totalJumlah,lastBaki].forEach((val,ci)=>{
+      const cell = totRow.getCell(ci+1);
+      cell.value = val;
+      cell.font  = { name:'Calibri', bold:true, size:10, color:{ argb:WHITE } };
+      cell.fill  = navyFill();
+      cell.alignment = { vertical:'middle', horizontal: ci>=7?'right': ci===5?'center':'left' };
+      if (ci>=7) cell.numFmt = '#,##0.00';
+    });
+
+    // Summary
+    const sumRn = totRn + 2;
+    ws.mergeCells(`A${sumRn}:J${sumRn}`);
+    ws.getRow(sumRn).height = 15;
+    Object.assign(ws.getCell(`A${sumRn}`), {
+      value:`Jumlah Rekod: ${data.length}   ·   Jumlah Bayaran: RM ${totalBayaran.toFixed(2)}   ·   Jumlah Keseluruhan: RM ${totalJumlah.toFixed(2)}`,
+      font:{ name:'Calibri', size:9, italic:true, color:{ argb:'FF555555' } }
+    });
+
+    // Footer
+    const footRn = sumRn + 2;
+    ws.mergeCells(`A${footRn}:J${footRn}`);
+    ws.getRow(footRn).height = 13;
+    Object.assign(ws.getCell(`A${footRn}`), {
+      value:`Dijana pada: ${new Date().toLocaleString('ms-MY')}   ·   Sistem Pengurusan Kewangan VOT`,
+      font:{ name:'Calibri', size:8, italic:true, color:{ argb:'FF888888' } }
+    });
+
+    const filename = `Penyata_${catLabel}_${monthLabel}.xlsx`.replace(/ /g,'_');
+    res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition',`attachment; filename="${filename}"`);
+    await wb.xlsx.write(res);
+    res.end();
+
+  } catch(e) {
+    console.error('Excel penyata error:', e);
+    if (!res.headersSent) res.status(500).json({ error:'Excel generation failed' });
+  }
 });
 
 // Start server

@@ -60,8 +60,9 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS kepala_vot_list (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      kod TEXT UNIQUE NOT NULL,
+      kod TEXT NOT NULL,
       keterangan TEXT,
+      category TEXT DEFAULT 'umum',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -95,6 +96,19 @@ db.serialize(() => {
     }
   });
 
+  // Migration: Add category column to kepala_vot_list if not exists
+  db.all("PRAGMA table_info(kepala_vot_list)", (err, columns) => {
+    if (columns) {
+      const hasCat = columns.some(col => col.name === 'category');
+      if (!hasCat) {
+        db.run(`ALTER TABLE kepala_vot_list ADD COLUMN category TEXT DEFAULT 'umum'`, (err) => {
+          if (err) console.error('Error adding category to kepala_vot_list:', err);
+          else console.log('Added category column to kepala_vot_list');
+        });
+      }
+    }
+  });
+
   // Migration: Add image columns if they don't exist
   db.all("PRAGMA table_info(notices)", (err, columns) => {
     if (columns) {
@@ -114,6 +128,28 @@ db.serialize(() => {
           else console.log('Added image_name column to notices table');
         });
       }
+    }
+  });
+
+  // Migration: Add personal info columns to users table if not exist
+  db.all("PRAGMA table_info(users)", (err, columns) => {
+    if (columns) {
+      const personalCols = {
+        nama: 'TEXT',
+        no_pekerja: 'TEXT',
+        jawatan: 'TEXT',
+        jabatan: 'TEXT',
+        telefon: 'TEXT',
+        profile_pic: 'TEXT'
+      };
+      Object.entries(personalCols).forEach(([col, type]) => {
+        if (!columns.some(c => c.name === col)) {
+          db.run(`ALTER TABLE users ADD COLUMN ${col} ${type}`, (err) => {
+            if (err) console.error(`Error adding ${col} column to users:`, err);
+            else console.log(`Added ${col} column to users table`);
+          });
+        }
+      });
     }
   });
 

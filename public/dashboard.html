@@ -15,6 +15,9 @@
       </div>
       <div id="apiDebug" style="margin-left:20px; color:#b00; font-weight:600;"></div>
       <div class="user-info">
+        <div class="profile-avatar" id="navProfileAvatar" onclick="openProfileUploadModal()" title="Klik untuk tukar gambar profil">
+          <span class="avatar-initials" id="navAvatarInitials">U</span>
+        </div>
         <span>Welcome, <strong id="username">User</strong></span>
         <button class="change-password-btn" onclick="openChangePasswordModal()">🔐 Change Password</button>
         
@@ -196,6 +199,11 @@
                 <option value="11">November</option>
                 <option value="12">Desember</option>
               </select>
+              <select id="kepalaVotSelectPerbekalan" onchange="loadBukuVot('perbekalan')" class="month-select">
+                <option value="">Semua Kepala VOT</option>
+              </select>
+              <button class="export-btn export-pdf" onclick="exportBukuVot('perbekalan','pdf')" title="Export Penyata PDF">&#128196; PDF</button>
+              <button class="export-btn export-excel" onclick="exportBukuVot('perbekalan','excel')" title="Export Penyata Excel">&#128202; Excel</button>
             </div>
           </div>
           <div class="table-wrapper">
@@ -237,6 +245,11 @@
                 <option value="11">November</option>
                 <option value="12">Desember</option>
               </select>
+              <select id="kepalaVotSelectPembangunan" onchange="loadBukuVot('pembangunan')" class="month-select">
+                <option value="">Semua Kepala VOT</option>
+              </select>
+              <button class="export-btn export-pdf" onclick="exportBukuVot('pembangunan','pdf')" title="Export Penyata PDF">&#128196; PDF</button>
+              <button class="export-btn export-excel" onclick="exportBukuVot('pembangunan','excel')" title="Export Penyata Excel">&#128202; Excel</button>
             </div>
           </div>
           <div class="table-wrapper">
@@ -278,6 +291,11 @@
                 <option value="11">November</option>
                 <option value="12">Desember</option>
               </select>
+              <select id="kepalaVotSelectGaji" onchange="loadBukuVot('gaji')" class="month-select">
+                <option value="">Semua Kepala VOT</option>
+              </select>
+              <button class="export-btn export-pdf" onclick="exportBukuVot('gaji','pdf')" title="Export Penyata PDF">&#128196; PDF</button>
+              <button class="export-btn export-excel" onclick="exportBukuVot('gaji','excel')" title="Export Penyata Excel">&#128202; Excel</button>
             </div>
           </div>
           <div class="table-wrapper">
@@ -319,6 +337,11 @@
                 <option value="11">November</option>
                 <option value="12">Desember</option>
               </select>
+              <select id="kepalaVotSelectOperasi" onchange="loadBukuVot('operasi')" class="month-select">
+                <option value="">Semua Kepala VOT</option>
+              </select>
+              <button class="export-btn export-pdf" onclick="exportBukuVot('operasi','pdf')" title="Export Penyata PDF">&#128196; PDF</button>
+              <button class="export-btn export-excel" onclick="exportBukuVot('operasi','excel')" title="Export Penyata Excel">&#128202; Excel</button>
             </div>
           </div>
           <div class="table-wrapper">
@@ -360,6 +383,11 @@
                 <option value="11">November</option>
                 <option value="12">Desember</option>
               </select>
+              <select id="kepalaVotSelectPenyelenggaraan" onchange="loadBukuVot('penyelenggaraan')" class="month-select">
+                <option value="">Semua Kepala VOT</option>
+              </select>
+              <button class="export-btn export-pdf" onclick="exportBukuVot('penyelenggaraan','pdf')" title="Export Penyata PDF">&#128196; PDF</button>
+              <button class="export-btn export-excel" onclick="exportBukuVot('penyelenggaraan','excel')" title="Export Penyata Excel">&#128202; Excel</button>
             </div>
           </div>
           <div class="table-wrapper">
@@ -401,6 +429,11 @@
                 <option value="11">November</option>
                 <option value="12">Desember</option>
               </select>
+              <select id="kepalaVotSelectUtiliti" onchange="loadBukuVot('utiliti')" class="month-select">
+                <option value="">Semua Kepala VOT</option>
+              </select>
+              <button class="export-btn export-pdf" onclick="exportBukuVot('utiliti','pdf')" title="Export Penyata PDF">&#128196; PDF</button>
+              <button class="export-btn export-excel" onclick="exportBukuVot('utiliti','excel')" title="Export Penyata Excel">&#128202; Excel</button>
             </div>
           </div>
           <div class="table-wrapper">
@@ -419,6 +452,55 @@
             </thead>
             <tbody id="bukuUtilitiBody"></tbody>
           </table>
+          </div>
+        </div>
+
+        <!-- Tambah Kepala VOT View (Admin) -->
+        <div id="tambahKepalaVotView" class="view-section" style="display: none;">
+          <div class="view-header">
+            <h1>&#128278; Urus Senarai Kepala VOT</h1>
+          </div>
+          <div class="form-card" style="max-width:700px;margin:0 auto 24px;">
+            <h3 style="margin-bottom:16px;">Tambah Kepala VOT Baharu</h3>
+            <div style="display:grid;grid-template-columns:120px 1fr 1fr auto;gap:12px;align-items:end;">
+              <div>
+                <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Kod</label>
+                <input type="text" id="kvKodInput" placeholder="cth: A001" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
+              </div>
+              <div>
+                <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Keterangan</label>
+                <input type="text" id="kvKeteranganInput" placeholder="cth: Alat Tulis" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
+              </div>
+              <div>
+                <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Kategori</label>
+                <select id="kvCategoryInput" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
+                  <option value="perbekalan">Perbekalan</option>
+                  <option value="pembangunan">Pembangunan</option>
+                  <option value="gaji">Gaji</option>
+                  <option value="operasi">Operasi</option>
+                  <option value="penyelenggaraan">Penyelenggaraan</option>
+                  <option value="utiliti">Utiliti</option>
+                </select>
+              </div>
+              <button onclick="saveKepalaVot()" style="padding:8px 18px;background:#667eea;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;white-space:nowrap;">Simpan</button>
+            </div>
+            <div id="kvMsg" style="margin-top:10px;font-size:0.85rem;"></div>
+          </div>
+          <div class="table-wrapper" style="max-width:700px;margin:0 auto;">
+            <table class="data-table" id="kepalaVotAdminTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Kod</th>
+                  <th>Keterangan</th>
+                  <th>Kategori</th>
+                  <th>Tindakan</th>
+                </tr>
+              </thead>
+              <tbody id="kepalaVotAdminBody">
+                <tr><td colspan="5" style="text-align:center;padding:20px;">Memuatkan...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -594,7 +676,13 @@
             <thead>
               <tr>
                 <th>ID</th>
+                <th>Profil</th>
+                <th>Nama Penuh</th>
                 <th>Username</th>
+                <th>No. Pekerja</th>
+                <th>Jawatan</th>
+                <th>Jabatan</th>
+                <th>Telefon</th>
                 <th>Tarikh Daftar</th>
                 <th>Action</th>
               </tr>
@@ -695,6 +783,82 @@
     </div>
   </div>
 
+  <!-- Add User Modal -->
+  <div id="addUserModal" class="modal" style="z-index:1100;">
+    <div class="modal-content" style="max-width:560px;max-height:90vh;overflow-y:auto;">
+      <span class="close" onclick="closeAddUserModal()">&times;</span>
+      <h2>➕ Tambah Pengguna Baru</h2>
+      <form id="addUserForm" enctype="multipart/form-data">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label>Gambar Profil</label>
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div id="addUserAvatarPreview" style="width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid #667eea;background:#e8eaf6;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">👤</div>
+              <label style="cursor:pointer;background:#667eea;color:#fff;padding:8px 14px;border-radius:6px;font-weight:600;font-size:13px;">
+                📷 Pilih Gambar
+                <input type="file" id="addUserProfilePic" name="profile_pic" accept="image/*" style="display:none;" onchange="previewAddUserAvatar(this)">
+              </label>
+              <small style="color:#888;">JPG/PNG, maks 2MB</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="addUsername">Username <span style="color:red">*</span></label>
+            <input type="text" id="addUsername" name="username" required placeholder="cth: ahmad123">
+          </div>
+          <div class="form-group">
+            <label for="addPassword">Password <span style="color:red">*</span></label>
+            <input type="password" id="addPassword" name="password" required placeholder="Minimum 5 aksara">
+          </div>
+          <div class="form-group" style="grid-column:1/-1;">
+            <label for="addNama">Nama Penuh</label>
+            <input type="text" id="addNama" name="nama" placeholder="cth: Ahmad bin Ali">
+          </div>
+          <div class="form-group">
+            <label for="addNoPekerja">No. Pekerja</label>
+            <input type="text" id="addNoPekerja" name="no_pekerja" placeholder="cth: SMJ-0123">
+          </div>
+          <div class="form-group">
+            <label for="addTelefon">No. Telefon</label>
+            <input type="text" id="addTelefon" name="telefon" placeholder="cth: 0123456789">
+          </div>
+          <div class="form-group">
+            <label for="addJawatan">Jawatan</label>
+            <input type="text" id="addJawatan" name="jawatan" placeholder="cth: Penolong Akauntan">
+          </div>
+          <div class="form-group">
+            <label for="addJabatan">Jabatan</label>
+            <input type="text" id="addJabatan" name="jabatan" placeholder="cth: Bahagian Kewangan">
+          </div>
+        </div>
+        <div id="addUserMessage" style="margin:8px 0;font-weight:600;"></div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button type="submit" class="btn" style="flex:1;">✅ Simpan Pengguna</button>
+          <button type="button" class="btn btn-cancel" onclick="closeAddUserModal()" style="flex:1;">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Profile Upload Modal (for current user) -->
+  <div id="profileUploadModal" class="modal" style="z-index:1100;">
+    <div class="modal-content" style="max-width:400px;">
+      <span class="close" onclick="closeProfileUploadModal()">&times;</span>
+      <h2>🖼️ Gambar Profil Saya</h2>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:10px 0;">
+        <div id="profileModalPreview" style="width:110px;height:110px;border-radius:50%;overflow:hidden;border:4px solid #667eea;background:#e8eaf6;display:flex;align-items:center;justify-content:center;font-size:44px;">👤</div>
+        <label style="cursor:pointer;background:#667eea;color:#fff;padding:10px 20px;border-radius:8px;font-weight:600;">
+          📷 Pilih Gambar Baru
+          <input type="file" id="myProfilePicInput" accept="image/*" style="display:none;" onchange="previewMyProfilePic(this)">
+        </label>
+        <div id="profileUploadMsg" style="font-weight:600;color:#333;"></div>
+        <div style="display:flex;gap:10px;width:100%;">
+          <button class="btn" style="flex:1;" onclick="uploadMyProfilePic()">💾 Simpan</button>
+          <button class="btn btn-cancel" style="flex:1;" onclick="closeProfileUploadModal()">Batal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const months = {
       '01': 'Januari', '02': 'Februari', '03': 'Maret', '04': 'April',
@@ -746,9 +910,19 @@
       try {
         const response = await fetch('/api/user', { credentials: 'same-origin' });
         const data = await response.json();
-        const username = data.user?.username || data.username;
+        const user = data.user || {};
+        const username = user.username || data.username || 'User';
         document.getElementById('username').textContent = username;
-        
+
+        // Set profile avatar
+        const avatarEl = document.getElementById('navProfileAvatar');
+        const initialsEl = document.getElementById('navAvatarInitials');
+        if (user.profile_pic) {
+          avatarEl.innerHTML = `<img src="${user.profile_pic}" alt="Profil" onerror="this.parentElement.innerHTML='<span class=\\'avatar-initials\\'>${username.charAt(0).toUpperCase()}</span>'">`;
+        } else {
+          initialsEl.textContent = (user.nama || username).charAt(0).toUpperCase();
+        }
+
         // Show admin menu only for admin
         if (username === 'admin') {
           document.getElementById('adminMenuContainer').style.display = 'block';
@@ -821,6 +995,10 @@
           document.getElementById('buatNotisView').style.display = 'block';
           loadNotesHistory();
           break;
+        case 'tambah-kepala-vot':
+          document.getElementById('tambahKepalaVotView').style.display = 'block';
+          loadKepalaVotAdmin();
+          break;
         case 'admin':
           window.location.href = '/admin';
           break;
@@ -872,9 +1050,32 @@
 
           const monthSelectId = `monthSelect${category.charAt(0).toUpperCase() + category.slice(1)}`;
           const month = getSelectedMonth(monthSelectId);
+          const kvSelectId = `kepalaVotSelect${category.charAt(0).toUpperCase() + category.slice(1)}`;
+          const kvSelect = document.getElementById(kvSelectId);
+          const selectedKV = kvSelect ? kvSelect.value : '';
+
+          // Populate KV filter options if not yet loaded (filtered by category)
+          if (kvSelect && kvSelect.options.length <= 1) {
+            try {
+              const kvResp = await fetch('/api/kepala-vot?category=' + encodeURIComponent(category), { credentials: 'same-origin' });
+              const kvResult = await kvResp.json();
+              if (kvResult.success) {
+                kvResult.data.forEach(kv => {
+                  const opt = document.createElement('option');
+                  opt.value = kv.kod;
+                  opt.textContent = kv.kod + (kv.keterangan ? ' - ' + kv.keterangan : '');
+                  kvSelect.appendChild(opt);
+                });
+              }
+            } catch(e) {}
+          }
+
           let filteredData = allCatData;
           if (month) {
             filteredData = filterDataByMonth(filteredData, month);
+          }
+          if (selectedKV) {
+            filteredData = filteredData.filter(item => (item.kepala_vot || '') === selectedKV);
           }
 
           const bodyId = `buku${category.charAt(0).toUpperCase() + category.slice(1)}Body`;
@@ -1001,6 +1202,71 @@
         console.error('Error loading statistics:', error);
       }
     }
+
+    // ── Kepala VOT Admin functions ─────────────────────────────
+    const catLabel = { perbekalan:'Perbekalan', pembangunan:'Pembangunan', gaji:'Gaji', operasi:'Operasi', penyelenggaraan:'Penyelenggaraan', utiliti:'Utiliti', umum:'Umum' };
+    const catColor = { perbekalan:'#3498db', pembangunan:'#e67e22', gaji:'#2ecc71', operasi:'#9b59b6', penyelenggaraan:'#e74c3c', utiliti:'#1abc9c', umum:'#95a5a6' };
+
+    async function loadKepalaVotAdmin() {
+      const tbody = document.getElementById('kepalaVotAdminBody');
+      try {
+        const resp = await fetch('/api/kepala-vot', { credentials: 'same-origin' });
+        const result = await resp.json();
+        if (!result.success) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Ralat memuatkan data.</td></tr>'; return; }
+        if (!result.data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Tiada Kepala VOT didaftarkan.</td></tr>'; return; }
+        tbody.innerHTML = result.data.map((kv, i) => {
+          const cat = (kv.category || 'umum').toLowerCase();
+          const col = catColor[cat] || '#95a5a6';
+          const lbl = catLabel[cat] || cat;
+          return '<tr><td>' + (i+1) + '</td><td><strong>' + kv.kod + '</strong></td><td>' + (kv.keterangan||'-') + '</td>'
+            + '<td><span style="background:' + col + ';color:#fff;padding:2px 8px;border-radius:10px;font-size:0.78rem;font-weight:600;">' + lbl + '</span></td>'
+            + '<td><button onclick="deleteKepalaVot(' + kv.id + ')" style="padding:4px 12px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">Padam</button></td></tr>';
+        }).join('');
+      } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Ralat sambungan.</td></tr>';
+      }
+    }
+
+    async function saveKepalaVot() {
+      const kod = document.getElementById('kvKodInput').value.trim();
+      const keterangan = document.getElementById('kvKeteranganInput').value.trim();
+      const category = document.getElementById('kvCategoryInput').value;
+      const msg = document.getElementById('kvMsg');
+      if (!kod) { msg.style.color = '#e74c3c'; msg.textContent = 'Sila masukkan Kod.'; return; }
+      try {
+        const resp = await fetch('/api/kepala-vot', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kod, keterangan, category })
+        });
+        const result = await resp.json();
+        if (result.success) {
+          msg.style.color = '#27ae60';
+          msg.textContent = 'Kepala VOT berjaya ditambah.';
+          document.getElementById('kvKodInput').value = '';
+          document.getElementById('kvKeteranganInput').value = '';
+          // Reset filter dropdowns so they reload fresh on next Buku Vot open
+          document.querySelectorAll('[id^="kepalaVotSelect"]').forEach(s => { while (s.options.length > 1) s.remove(1); });
+          loadKepalaVotAdmin();
+        } else {
+          msg.style.color = '#e74c3c';
+          msg.textContent = result.error || 'Gagal menyimpan.';
+        }
+      } catch(e) {
+        msg.style.color = '#e74c3c'; msg.textContent = 'Ralat sambungan.';
+      }
+    }
+
+    async function deleteKepalaVot(id) {
+      if (!confirm('Padamkan Kepala VOT ini?')) return;
+      try {
+        const resp = await fetch('/api/kepala-vot/' + id, { method: 'DELETE', credentials: 'same-origin' });
+        const result = await resp.json();
+        if (result.success) loadKepalaVotAdmin();
+        else alert(result.error || 'Gagal memadam.');
+      } catch(e) { alert('Ralat sambungan.'); }
+    }
+    // ─────────────────────────────────────────────────────────
 
     // Load data
     async function loadData() {
@@ -1268,16 +1534,26 @@
       }
     }
 
-    // Export data
+    // Export data (from Paparan Data view)
     function exportData(format) {
-      const month = getSelectedMonth('monthSelectData');
-      if (format === 'pdf') {
-        window.location.href = '/api/export/pdf' + (month ? '?month=' + month : '');
-      } else if (format === 'excel') {
-        window.location.href = '/api/export/excel' + (month ? '?month=' + month : '');
-      } else if (format === 'csv') {
-        window.location.href = '/api/export/csv' + (month ? '?month=' + month : '');
-      }
+      const month    = getSelectedMonth('monthSelectData');
+      const category = document.getElementById('categorySelectData')?.value || '';
+      const params   = new URLSearchParams();
+      if (month)    params.set('month', month);
+      if (category) params.set('category', category);
+      const qs = params.toString() ? '?' + params.toString() : '';
+      if (format === 'pdf')   window.location.href = '/api/penyata/pdf'   + qs;
+      else if (format === 'excel') window.location.href = '/api/penyata/excel' + qs;
+      else window.location.href = '/api/export/csv' + (month ? '?month='+month : '');
+    }
+
+    // Export Buku Vot by category
+    function exportBukuVot(category, format) {
+      const cap    = category.charAt(0).toUpperCase() + category.slice(1);
+      const month  = getSelectedMonth('monthSelect' + cap);
+      const params = new URLSearchParams({ category });
+      if (month) params.set('month', month);
+      window.location.href = '/api/penyata/' + format + '?' + params.toString();
     }
 
     // Change password modal functions
@@ -1434,9 +1710,18 @@
             result.data.forEach(user => {
               const row = document.createElement('tr');
               const date = new Date(user.created_at).toLocaleDateString('ms-MY');
+              const avatarHtml = user.profile_pic
+                ? `<img src="${user.profile_pic}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #667eea;" alt="">`
+                : `<div style="width:36px;height:36px;border-radius:50%;background:#667eea;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;margin:0 auto;">${(user.nama || user.username).charAt(0).toUpperCase()}</div>`;
               row.innerHTML = `
                 <td>${user.id}</td>
-                <td>${user.username}</td>
+                <td style="text-align:center;">${avatarHtml}</td>
+                <td>${user.nama || '-'}</td>
+                <td><strong>${user.username}</strong></td>
+                <td>${user.no_pekerja || '-'}</td>
+                <td>${user.jawatan || '-'}</td>
+                <td>${user.jabatan || '-'}</td>
+                <td>${user.telefon || '-'}</td>
                 <td>${date}</td>
                 <td>
                   ${user.id !== 1 ? `<button class="btn btn-delete" onclick="deleteUser(${user.id})">Delete</button>` : '<span style="color: #999;">Admin</span>'}
@@ -1456,49 +1741,123 @@
 
     // Open Add User Modal
     function openAddUserModal() {
-      const response = prompt('Masukkan username pengguna baru:');
-      if (!response) return;
+      document.getElementById('addUserForm').reset();
+      document.getElementById('addUserAvatarPreview').innerHTML = '👤';
+      document.getElementById('addUserMessage').textContent = '';
+      document.getElementById('addUserModal').style.display = 'block';
+    }
 
-      const username = response.trim();
-      if (!username) {
-        alert('Username tidak boleh kosong');
-        return;
+    function closeAddUserModal() {
+      document.getElementById('addUserModal').style.display = 'none';
+    }
+
+    function previewAddUserAvatar(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          document.getElementById('addUserAvatarPreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+        };
+        reader.readAsDataURL(input.files[0]);
       }
-
-      const password = prompt('Masukkan password untuk pengguna baru:');
-      if (!password) return;
-
-      if (password.length < 5) {
-        alert('Password harus minimal 5 karakter');
-        return;
-      }
-
-      addUser(username, password);
     }
 
     // Add User
-    async function addUser(username, password) {
+    async function addUser(formData) {
       try {
         const response = await fetch('/api/users', {
           method: 'POST',
           credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ username, password })
+          body: formData
         });
 
         const result = await response.json();
 
         if (result.success) {
-          alert('Pengguna berhasil ditambahkan!');
-          loadUsers();
+          document.getElementById('addUserMessage').style.color = 'green';
+          document.getElementById('addUserMessage').textContent = '✅ Pengguna berjaya ditambah!';
+          setTimeout(() => { closeAddUserModal(); loadUsers(); }, 1200);
         } else {
-          alert('Error: ' + result.error);
+          document.getElementById('addUserMessage').style.color = 'red';
+          document.getElementById('addUserMessage').textContent = '❌ ' + result.error;
         }
       } catch (error) {
         console.error('Error adding user:', error);
-        alert('Error adding user');
+        document.getElementById('addUserMessage').style.color = 'red';
+        document.getElementById('addUserMessage').textContent = '❌ Ralat menyambung ke pelayan';
+      }
+    }
+
+    // Form submit handler
+    document.getElementById('addUserForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const password = document.getElementById('addPassword').value;
+      if (password.length < 5) {
+        document.getElementById('addUserMessage').style.color = 'red';
+        document.getElementById('addUserMessage').textContent = '❌ Password harus minimum 5 aksara';
+        return;
+      }
+      const fd = new FormData(this);
+      addUser(fd);
+    });
+
+    // Profile upload for current user
+    function openProfileUploadModal() {
+      document.getElementById('profileUploadMsg').textContent = '';
+      document.getElementById('myProfilePicInput').value = '';
+      // show current avatar
+      const navAvatar = document.getElementById('navProfileAvatar');
+      const img = navAvatar.querySelector('img');
+      const preview = document.getElementById('profileModalPreview');
+      if (img) {
+        preview.innerHTML = `<img src="${img.src}" style="width:100%;height:100%;object-fit:cover;">`;
+      } else {
+        const initials = document.getElementById('navAvatarInitials');
+        preview.innerHTML = initials ? `<span style="font-size:44px;color:#667eea;font-weight:700;">${initials.textContent}</span>` : '👤';
+      }
+      document.getElementById('profileUploadModal').style.display = 'block';
+    }
+
+    function closeProfileUploadModal() {
+      document.getElementById('profileUploadModal').style.display = 'none';
+    }
+
+    function previewMyProfilePic(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          document.getElementById('profileModalPreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    async function uploadMyProfilePic() {
+      const input = document.getElementById('myProfilePicInput');
+      if (!input.files || !input.files[0]) {
+        document.getElementById('profileUploadMsg').style.color = 'red';
+        document.getElementById('profileUploadMsg').textContent = 'Sila pilih gambar terlebih dahulu.';
+        return;
+      }
+      const fd = new FormData();
+      fd.append('profile_pic', input.files[0]);
+      try {
+        const res = await fetch('/api/user/profile-pic', { method: 'POST', credentials: 'same-origin', body: fd });
+        const result = await res.json();
+        if (result.success) {
+          document.getElementById('profileUploadMsg').style.color = 'green';
+          document.getElementById('profileUploadMsg').textContent = '✅ Gambar profil dikemaskini!';
+          // update navbar avatar
+          const src = result.profile_pic;
+          const avatarEl = document.getElementById('navProfileAvatar');
+          avatarEl.innerHTML = `<img src="${src}" alt="Profil" style="width:100%;height:100%;object-fit:cover;">`;
+          setTimeout(closeProfileUploadModal, 1200);
+        } else {
+          document.getElementById('profileUploadMsg').style.color = 'red';
+          document.getElementById('profileUploadMsg').textContent = '❌ ' + result.error;
+        }
+      } catch (err) {
+        document.getElementById('profileUploadMsg').style.color = 'red';
+        document.getElementById('profileUploadMsg').textContent = '❌ Ralat menyambung ke pelayan';
       }
     }
 
