@@ -1155,14 +1155,18 @@ app.get('/api/export/csv', requireAuth, (req, res) => {
 // GET /api/penyata/pdf?category=perbekalan&month=01
 // ══════════════════════════════════════════════════════════════════
 app.get('/api/penyata/pdf', requireAuth, (req, res) => {
-  const { month, category, kepala_vot, kepala_vot_desc } = req.query;
+  const { month, category, buku_vot, kepala_vot, kepala_vot_desc } = req.query;
   const monthNames = ['Januari','Februari','Mac','April','Mei','Juni','Julai','Ogos','September','Oktober','November','Disember'];
 
   db.all('SELECT * FROM data ORDER BY category ASC, tarikh ASC, created_at ASC', [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Database error' });
 
     let data = rows || [];
-    if (category) data = data.filter(r => (r.category||'').toLowerCase() === category.toLowerCase());
+    if (buku_vot) {
+      data = data.filter(r => String(r.aktiviti || '').startsWith(String(buku_vot)));
+    } else if (category) {
+      data = data.filter(r => (r.category||'').toLowerCase() === category.toLowerCase());
+    }
     if (kepala_vot) data = data.filter(r => String(r.kepala_vot || '').trim() === String(kepala_vot).trim());
     if (month) data = data.filter(r => {
       if (!r.tarikh) return false;
@@ -1183,8 +1187,13 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         penyelenggaraan: 'PENYELENGGARAAN',
         utiliti: 'UTILITI'
       };
+      const bukuVotCode = String(buku_vot || '').trim();
       const catNorm = (category || '').toLowerCase();
-      const bukuVotLabel = bukuVotMap[catNorm] || 'SEMUA BUKU VOT';
+      const bukuVotLabel = bukuVotCode === '210100'
+        ? '210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA'
+        : bukuVotCode === '210200'
+          ? '210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR'
+          : (bukuVotMap[catNorm] || 'SEMUA BUKU VOT');
       const monthLabel = month ? monthNames[parseInt(month)-1] : 'Semua Bulan';
       const selectedKodDesc = resolvedKodDesc;
       const selectedKodLabel = selectedKod ? (selectedKodDesc ? `${selectedKod} - ${selectedKodDesc}` : selectedKod) : 'Semua Kod Kepala VOT';
@@ -1335,92 +1344,190 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       // ── Render ───────────────────────────────────────────────────
       const TABLE_TOP_GAP = 8;
       const TABLE_BOTTOM_GAP = 8;
-
-      // Recalculate running totals based on peruntukan (allocation) for each kod.
-      const peruntukanForSelectedKod = parseFloat(resolvedPeruntukan) || 0;
-      const runningByKod = {};
-      const sourceData = (data || []).slice().sort((a, b) => new Date(a.tarikh || a.created_at) - new Date(b.tarikh || b.created_at));
-      const expandedData = [];
-      sourceData.forEach((row) => {
-        const kod = String(row.kepala_vot || '').trim();
-        const kodPeruntukan = selectedKod
-          ? peruntukanForSelectedKod
-          : (kvMetaByKod[kod]?.peruntukan || 0);
-        const isFirstKodRow = !runningByKod[kod];
-        if (!runningByKod[kod]) {
-          runningByKod[kod] = {
-            jumlah: 0,
-            peruntukan: kodPeruntukan
-          };
-        }
-        const bakiAwal = runningByKod[kod].peruntukan;
-
-        // Opening balance must be shown as its own first row, separate from bill rows.
-        if (isFirstKodRow) {
-          expandedData.push({
-            tarikh: '-',
-            rujukan: '-',
-            dibayar_kepada: '-',
-            butiran_penyata: `BAKI AWAL (KOD ${kod || '-'})`,
-            bayaran: 0,
-            jumlah_bayaran: 0,
-            baki: bakiAwal
-          });
-        }
-
-        const n = parseFloat(row.bayaran) || 0;
-        runningByKod[kod].jumlah += n;
-        row.jumlah_bayaran = runningByKod[kod].jumlah;
-        row.baki = runningByKod[kod].peruntukan - runningByKod[kod].jumlah;
-        row.butiran_penyata = String(row.perkara || '-').trim();
-        expandedData.push(row);
-      });
-      data = expandedData;
-
-      let yPos = drawHeader(true) + TABLE_TOP_GAP;
-      yPos = drawTableHeader(yPos);
-      const tot = { bayaran:0, jumlah_bayaran:0, baki:0 };
+      const TOTALS_GAP = 10;
       const BOTTOM_RESERVE = FOOT_H + HDR_H + 26 + TABLE_BOTTOM_GAP;
 
-      data.forEach((row, idx) => {
-        if (yPos + ROW_H > PH - BOTTOM_RESERVE) {
-          doc.addPage({ size:'A4', layout:'landscape', margin:0 });
-          yPos = drawHeader(false) + TABLE_TOP_GAP;
-          yPos = drawTableHeader(yPos);
-        }
-        yPos = drawRow(row, yPos, idx%2===0);
-        tot.bayaran += parseFloat(row.bayaran)||0;
-      });
+      const peruntukanForSelectedKod = parseFloat(resolvedPeruntukan) || 0;
+      // For aggregate mode (no specific kod), compute total peruntukan across all kods in kvMetaByKod
+      const totalPeruntukanGlobal = selectedKod
+        ? 0
+        : Object.values(kvMetaByKod).reduce((sum, kv) => sum + (parseFloat(kv.peruntukan) || 0), 0);
+      let totalGlobalBayaran = 0; // cumulative bayaran for aggregate mode
+      const runningByKod = {};
+      const sourceData = (data || []).slice().sort((a, b) => new Date(a.tarikh || a.created_at) - new Date(b.tarikh || b.created_at));
 
-      if (selectedKod) {
-        const selectedRunning = runningByKod[selectedKod] || { jumlah: 0, peruntukan: peruntukanForSelectedKod };
-        tot.jumlah_bayaran = selectedRunning.jumlah;
-        tot.baki = selectedRunning.peruntukan - selectedRunning.jumlah;
-      } else {
-        const jumlahByKod = Object.values(runningByKod).reduce((sum, item) => sum + (parseFloat(item.jumlah) || 0), 0);
-        tot.jumlah_bayaran = jumlahByKod;
-        const bakiByKod = Object.values(runningByKod).reduce((sum, item) => {
+      const openingByMonth = {};
+      const rowsByMonth = {};
+      const monthOrder = [];
+
+      const getCurrentTotalBaki = () => {
+        if (!selectedKod) return totalPeruntukanGlobal - totalGlobalBayaran;
+        return Object.values(runningByKod).reduce((sum, item) => {
           const peruntukan = parseFloat(item.peruntukan) || 0;
           const jumlah = parseFloat(item.jumlah) || 0;
           return sum + (peruntukan - jumlah);
         }, 0);
-        tot.baki = bakiByKod;
+      };
+
+      sourceData.forEach((row) => {
+        const kod = String(row.kepala_vot || '').trim();
+        const aktCode = String(row.aktiviti || '').trim().substring(0, 6);
+        const kodKey = `${aktCode}|${kod}`;
+        const kodPeruntukan = selectedKod
+          ? peruntukanForSelectedKod
+          : ((kvMetaByKod[kodKey]?.peruntukan) || (kvMetaByKod[kod]?.peruntukan) || 0);
+
+        if (!runningByKod[kodKey]) {
+          runningByKod[kodKey] = {
+            jumlah: 0,
+            peruntukan: kodPeruntukan
+          };
+        }
+
+        const itemMonth = String(new Date(row.tarikh || row.created_at).getMonth() + 1).padStart(2, '0');
+        if (!rowsByMonth[itemMonth]) {
+          rowsByMonth[itemMonth] = [];
+          monthOrder.push(itemMonth);
+          openingByMonth[itemMonth] = selectedKod
+            ? (runningByKod[selectedKod]?.peruntukan - runningByKod[selectedKod]?.jumlah)
+            : getCurrentTotalBaki();
+        }
+
+        const n = parseFloat(row.bayaran) || 0;
+        runningByKod[kodKey].jumlah += n;
+        if (selectedKod) {
+          row.jumlah_bayaran = runningByKod[kodKey].jumlah;
+          row.baki = runningByKod[kodKey].peruntukan - runningByKod[kodKey].jumlah;
+        } else {
+          totalGlobalBayaran += n;
+          row.jumlah_bayaran = totalGlobalBayaran;
+          row.baki = totalPeruntukanGlobal - totalGlobalBayaran;
+        }
+        row.butiran_penyata = String(row.perkara || '-').trim();
+        rowsByMonth[itemMonth].push(row);
+      });
+
+      const deriveOpeningForMonth = (targetMonth) => {
+        const target = parseInt(targetMonth, 10);
+
+        if (!selectedKod) {
+          // Aggregate mode: totalPeruntukanGlobal minus all bayaran before this month
+          const totalBefore = sourceData.reduce((sum, row) => {
+            const itemMonth = parseInt(String(new Date(row.tarikh || row.created_at).getMonth() + 1), 10);
+            if (itemMonth < target) sum += parseFloat(row.bayaran) || 0;
+            return sum;
+          }, 0);
+          return totalPeruntukanGlobal - totalBefore;
+        }
+
+        const tempRunning = {};
+        sourceData.forEach((row) => {
+          const itemMonth = parseInt(String(new Date(row.tarikh || row.created_at).getMonth() + 1), 10);
+          const kod = String(row.kepala_vot || '').trim();
+          const aktCode = String(row.aktiviti || '').trim().substring(0, 6);
+          const kodKey = `${aktCode}|${kod}`;
+
+          if (!tempRunning[kodKey]) {
+            tempRunning[kodKey] = { jumlah: 0, peruntukan: peruntukanForSelectedKod };
+          }
+
+          if (itemMonth < target) {
+            tempRunning[kodKey].jumlah += parseFloat(row.bayaran) || 0;
+          }
+        });
+
+        const selectedKey = Object.keys(tempRunning).find(k => k.endsWith('|' + selectedKod));
+        const info = (selectedKey ? tempRunning[selectedKey] : null) || { jumlah: 0, peruntukan: peruntukanForSelectedKod };
+        return (parseFloat(info.peruntukan) || 0) - (parseFloat(info.jumlah) || 0);
+      };
+
+      const renderMonths = month
+        ? [month]
+        : monthOrder.slice().sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+
+      if (renderMonths.length === 0) {
+        renderMonths.push(month || String(new Date().getMonth() + 1).padStart(2, '0'));
       }
 
-      // Place totals box after the last data row with spacing.
-      const TOTALS_GAP = 10;
-      let totalsY = yPos + TOTALS_GAP;
-      if (totalsY + HDR_H + 16 > PH - FOOT_H - 6) {
-        doc.addPage({ size:'A4', layout:'landscape', margin:0 });
-        yPos = drawHeader(false) + TABLE_TOP_GAP;
+      let pageFirst = true;
+      let overallRecords = 0;
+      let overallBayaran = 0;
+      let overallJumlahAkhir = 0;
+      let overallBakiAkhir = 0;
+
+      renderMonths.forEach((mm, sectionIdx) => {
+        const monthData = rowsByMonth[mm] || [];
+        const opening = Object.prototype.hasOwnProperty.call(openingByMonth, mm)
+          ? (openingByMonth[mm] || 0)
+          : deriveOpeningForMonth(mm);
+        const monthLabelText = monthNames[parseInt(mm, 10) - 1] || `Bulan ${mm}`;
+
+        if (!pageFirst) {
+          doc.addPage({ size:'A4', layout:'landscape', margin:0 });
+        }
+
+        let yPos = drawHeader(pageFirst) + TABLE_TOP_GAP;
+        pageFirst = false;
+
+        doc.fillColor('#2c4a8c').fontSize(9).font('Helvetica-Bold')
+          .text(`BULAN: ${monthLabelText}`, MX, yPos, { width: CONTENT_W });
+        yPos += 14;
+
         yPos = drawTableHeader(yPos);
-        totalsY = yPos + TOTALS_GAP;
-      }
-      drawTotals(totalsY, tot);
 
-      // Summary line below totals box
-      doc.fillColor('#444').fontSize(8.5).font('Helvetica')
-      .text(`Jumlah Rekod: ${data.length}   ·   Amaun (RM): ${fmtAmount(tot.bayaran)}   ·   Jumlah Bayaran (RM): ${fmtAmount(tot.jumlah_bayaran)}   ·   Baki Semasa (RM): ${fmtAmount(tot.baki)}`, MX, totalsY + HDR_H + 4, { width:CONTENT_W });
+        const openingRow = {
+          tarikh: '-',
+          rujukan: '-',
+          dibayar_kepada: '-',
+          butiran_penyata: 'BAKI DIBAWA KE HADAPAN',
+          bayaran: 0,
+          jumlah_bayaran: 0,
+          baki: opening
+        };
+        yPos = drawRow(openingRow, yPos, true);
+
+        const monthTot = { bayaran: 0, jumlah_bayaran: 0, baki: opening };
+        monthData.forEach((row, idx) => {
+          if (yPos + ROW_H > PH - BOTTOM_RESERVE) {
+            doc.addPage({ size:'A4', layout:'landscape', margin:0 });
+            yPos = drawHeader(false) + TABLE_TOP_GAP;
+            doc.fillColor('#2c4a8c').fontSize(9).font('Helvetica-Bold')
+              .text(`BULAN: ${monthLabelText} (sambungan)`, MX, yPos, { width: CONTENT_W });
+            yPos += 14;
+            yPos = drawTableHeader(yPos);
+          }
+
+          yPos = drawRow(row, yPos, idx % 2 === 0);
+          monthTot.bayaran += parseFloat(row.bayaran) || 0;
+          monthTot.jumlah_bayaran = parseFloat(row.jumlah_bayaran) || monthTot.jumlah_bayaran;
+          monthTot.baki = parseFloat(row.baki) || monthTot.baki;
+        });
+
+        let totalsY = yPos + TOTALS_GAP;
+        if (totalsY + HDR_H + 16 > PH - FOOT_H - 6) {
+          doc.addPage({ size:'A4', layout:'landscape', margin:0 });
+          yPos = drawHeader(false) + TABLE_TOP_GAP;
+          doc.fillColor('#2c4a8c').fontSize(9).font('Helvetica-Bold')
+            .text(`BULAN: ${monthLabelText} (ringkasan)`, MX, yPos, { width: CONTENT_W });
+          yPos += 14;
+          yPos = drawTableHeader(yPos);
+          totalsY = yPos + TOTALS_GAP;
+        }
+
+        drawTotals(totalsY, monthTot);
+        doc.fillColor('#444').fontSize(8.5).font('Helvetica')
+          .text(
+            `Jumlah Rekod Bulan ${mm}: ${monthData.length}   ·   Amaun (RM): ${fmtAmount(monthTot.bayaran)}   ·   Jumlah Bayaran (RM): ${fmtAmount(monthTot.jumlah_bayaran)}   ·   Baki Semasa (RM): ${fmtAmount(monthTot.baki)}`,
+            MX,
+            totalsY + HDR_H + 4,
+            { width: CONTENT_W }
+          );
+
+        overallRecords += monthData.length;
+        overallBayaran += monthTot.bayaran;
+        overallJumlahAkhir = monthTot.jumlah_bayaran;
+        overallBakiAkhir = monthTot.baki;
+      });
 
       // ── Footer on every page ─────────────────────────────────────
       const pc = doc.bufferedPageRange().count;
@@ -1442,9 +1549,20 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
     }
     };
 
+    let kvSql = 'SELECT kod, keterangan, peruntukan, aktiviti, category FROM kepala_vot_list';
+    let kvParams = [];
+    if (buku_vot) {
+      kvSql += ' WHERE SUBSTR(aktiviti, 1, LENGTH(?)) = ?';
+      kvParams = [String(buku_vot), String(buku_vot)];
+    } else if (category) {
+      kvSql += ' WHERE LOWER(category) = LOWER(?)';
+      kvParams = [category || ''];
+    }
+    kvSql += ' ORDER BY id DESC';
+
     db.all(
-      'SELECT kod, keterangan, peruntukan FROM kepala_vot_list WHERE LOWER(category) = LOWER(?) ORDER BY id DESC',
-      [category || ''],
+      kvSql,
+      kvParams,
       (kvErr, kvRows) => {
         const kvMetaByKod = {};
         if (!kvErr && Array.isArray(kvRows)) {
