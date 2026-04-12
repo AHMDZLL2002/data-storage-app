@@ -143,7 +143,7 @@ const translations = {
     'maret': 'Mac',
     'april': 'April',
     'mei': 'Mei',
-    'juni': 'Juni',
+    'juni': 'Jun',
     'juli': 'Julai',
     'agustus': 'Ogos',
     'september': 'September',
@@ -459,8 +459,8 @@ const translations = {
 
 // Get translation string
 function t(key, lang = null) {
-  const currentLang = lang || localStorage.getItem('appLanguage') || 'en-US';
-  return translations[currentLang]?.[key] || translations['en-US'][key] || key;
+  const currentLang = lang || localStorage.getItem('appLanguage') || 'ms-MY';
+  return translations[currentLang]?.[key] || translations['ms-MY'][key] || key;
 }
 
 // Set language and reload UI
@@ -489,7 +489,9 @@ function getAvailableLanguages() {
 
 // Initialize language on page load
 document.addEventListener('DOMContentLoaded', function() {
-  const currentLang = localStorage.getItem('appLanguage') || 'en-US';
+  const storedLang = localStorage.getItem('appLanguage');
+  const currentLang = (!storedLang || storedLang === 'en-US') ? 'ms-MY' : storedLang;
+  localStorage.setItem('appLanguage', currentLang);
   if (document.documentElement.lang !== currentLang) {
     document.documentElement.lang = currentLang;
   }

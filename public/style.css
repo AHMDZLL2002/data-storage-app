@@ -2279,6 +2279,17 @@ body > * {
   margin: 0 5px;
 }
 
+.login-header .language-btn {
+  background: #ffffff;
+  color: #1f2d4a;
+  border: 1px solid #c7d2fe;
+}
+
+.login-header .language-btn:hover {
+  background: #f4f7ff;
+  border-color: #9fb2ff;
+}
+
 .language-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.5);
