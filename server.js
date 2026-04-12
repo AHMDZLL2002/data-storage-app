@@ -1168,6 +1168,7 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       data = data.filter(r => (r.category||'').toLowerCase() === category.toLowerCase());
     }
     if (kepala_vot) data = data.filter(r => String(r.kepala_vot || '').trim() === String(kepala_vot).trim());
+    const allDataBeforeMonthFilter = data.slice(); // save before month filter for correct opening balance
     if (month) data = data.filter(r => {
       if (!r.tarikh) return false;
       return String(new Date(r.tarikh).getMonth() + 1).padStart(2,'0') === month;
@@ -1348,28 +1349,24 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       const BOTTOM_RESERVE = FOOT_H + HDR_H + 26 + TABLE_BOTTOM_GAP;
 
       const peruntukanForSelectedKod = parseFloat(resolvedPeruntukan) || 0;
-      // For aggregate mode (no specific kod), compute total peruntukan across all kods in kvMetaByKod
       const totalPeruntukanGlobal = selectedKod
         ? 0
         : Object.values(kvMetaByKod).reduce((sum, kv) => sum + (parseFloat(kv.peruntukan) || 0), 0);
-      let totalGlobalBayaran = 0; // cumulative bayaran for aggregate mode
-      const runningByKod = {};
+
+      // allSourceData: all data for this buku_vot/kepala_vot (NOT month-filtered) — for correct balance calc
+      const allSourceData = (allDataBeforeMonthFilter || []).slice().sort((a, b) => new Date(a.tarikh || a.created_at) - new Date(b.tarikh || b.created_at));
+      // sourceData: month-filtered for display rows only
       const sourceData = (data || []).slice().sort((a, b) => new Date(a.tarikh || a.created_at) - new Date(b.tarikh || b.created_at));
 
       const openingByMonth = {};
       const rowsByMonth = {};
       const monthOrder = [];
+      const runningTotalsById = {}; // pre-computed jumlah_bayaran & baki per row id
 
-      const getCurrentTotalBaki = () => {
-        if (!selectedKod) return totalPeruntukanGlobal - totalGlobalBayaran;
-        return Object.values(runningByKod).reduce((sum, item) => {
-          const peruntukan = parseFloat(item.peruntukan) || 0;
-          const jumlah = parseFloat(item.jumlah) || 0;
-          return sum + (peruntukan - jumlah);
-        }, 0);
-      };
-
-      sourceData.forEach((row) => {
+      // Pass 1: Compute running totals from ALL data (not month-filtered) for correct opening balances
+      let tempGlobalBayaran = 0;
+      const tempRunningByKod = {};
+      allSourceData.forEach((row) => {
         const kod = String(row.kepala_vot || '').trim();
         const aktCode = String(row.aktiviti || '').trim().substring(0, 6);
         const kodKey = `${aktCode}|${kod}`;
@@ -1377,32 +1374,44 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
           ? peruntukanForSelectedKod
           : ((kvMetaByKod[kodKey]?.peruntukan) || (kvMetaByKod[kod]?.peruntukan) || 0);
 
-        if (!runningByKod[kodKey]) {
-          runningByKod[kodKey] = {
-            jumlah: 0,
-            peruntukan: kodPeruntukan
-          };
+        if (!tempRunningByKod[kodKey]) {
+          tempRunningByKod[kodKey] = { jumlah: 0, peruntukan: kodPeruntukan };
         }
 
+        const itemMonth = String(new Date(row.tarikh || row.created_at).getMonth() + 1).padStart(2, '0');
+        if (!openingByMonth[itemMonth]) {
+          if (!selectedKod) {
+            openingByMonth[itemMonth] = totalPeruntukanGlobal - tempGlobalBayaran;
+          } else {
+            const selKey = Object.keys(tempRunningByKod).find(k => k.endsWith('|' + selectedKod));
+            const info = selKey ? tempRunningByKod[selKey] : { jumlah: 0, peruntukan: peruntukanForSelectedKod };
+            openingByMonth[itemMonth] = (parseFloat(info.peruntukan) || 0) - (parseFloat(info.jumlah) || 0);
+          }
+        }
+
+        const n = parseFloat(row.bayaran) || 0;
+        tempRunningByKod[kodKey].jumlah += n;
+        if (!selectedKod) {
+          tempGlobalBayaran += n;
+          runningTotalsById[row.id] = { jumlah_bayaran: tempGlobalBayaran, baki: totalPeruntukanGlobal - tempGlobalBayaran };
+        } else {
+          runningTotalsById[row.id] = {
+            jumlah_bayaran: tempRunningByKod[kodKey].jumlah,
+            baki: tempRunningByKod[kodKey].peruntukan - tempRunningByKod[kodKey].jumlah
+          };
+        }
+      });
+
+      // Pass 2: Build display rows from month-filtered data using pre-computed running totals
+      sourceData.forEach((row) => {
         const itemMonth = String(new Date(row.tarikh || row.created_at).getMonth() + 1).padStart(2, '0');
         if (!rowsByMonth[itemMonth]) {
           rowsByMonth[itemMonth] = [];
           monthOrder.push(itemMonth);
-          openingByMonth[itemMonth] = selectedKod
-            ? (runningByKod[selectedKod]?.peruntukan - runningByKod[selectedKod]?.jumlah)
-            : getCurrentTotalBaki();
         }
-
-        const n = parseFloat(row.bayaran) || 0;
-        runningByKod[kodKey].jumlah += n;
-        if (selectedKod) {
-          row.jumlah_bayaran = runningByKod[kodKey].jumlah;
-          row.baki = runningByKod[kodKey].peruntukan - runningByKod[kodKey].jumlah;
-        } else {
-          totalGlobalBayaran += n;
-          row.jumlah_bayaran = totalGlobalBayaran;
-          row.baki = totalPeruntukanGlobal - totalGlobalBayaran;
-        }
+        const totals = runningTotalsById[row.id] || { jumlah_bayaran: 0, baki: 0 };
+        row.jumlah_bayaran = totals.jumlah_bayaran;
+        row.baki = totals.baki;
         row.butiran_penyata = String(row.perkara || '-').trim();
         rowsByMonth[itemMonth].push(row);
       });
@@ -1411,8 +1420,8 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         const target = parseInt(targetMonth, 10);
 
         if (!selectedKod) {
-          // Aggregate mode: totalPeruntukanGlobal minus all bayaran before this month
-          const totalBefore = sourceData.reduce((sum, row) => {
+          // Aggregate mode: use allSourceData so previous months' bayaran are included
+          const totalBefore = allSourceData.reduce((sum, row) => {
             const itemMonth = parseInt(String(new Date(row.tarikh || row.created_at).getMonth() + 1), 10);
             if (itemMonth < target) sum += parseFloat(row.bayaran) || 0;
             return sum;
@@ -1421,7 +1430,7 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         }
 
         const tempRunning = {};
-        sourceData.forEach((row) => {
+        allSourceData.forEach((row) => {
           const itemMonth = parseInt(String(new Date(row.tarikh || row.created_at).getMonth() + 1), 10);
           const kod = String(row.kepala_vot || '').trim();
           const aktCode = String(row.aktiviti || '').trim().substring(0, 6);
