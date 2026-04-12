@@ -675,6 +675,7 @@
                 <th>Profil</th>
                 <th>Nama Penuh</th>
                 <th>Username</th>
+                <th>Role</th>
                 <th>No. Pekerja</th>
                 <th>Jawatan</th>
                 <th>Jabatan</th>
@@ -2523,12 +2524,17 @@
 
               const hist = histMap[user.id] || {};
               const fmtDT = (dt) => dt ? new Date(dt + ' UTC+8').toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '<span style="color:#ccc;">—</span>';
+              const resolvedRole = user.role || ((String(user.username || '').toLowerCase() === 'admin' || user.id === 1) ? 'Admin' : 'Pengguna');
+              const roleBadge = resolvedRole === 'Admin'
+                ? '<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#ffe9cf;color:#a35a00;font-size:12px;font-weight:700;">Admin</span>'
+                : '<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#e8f4ff;color:#1b5f99;font-size:12px;font-weight:700;">Pengguna</span>';
 
               row.innerHTML = `
                 <td>${user.id}</td>
                 <td style="text-align:center;">${avatarHtml}</td>
                 <td>${user.nama || '-'}</td>
                 <td><strong>${user.username}</strong></td>
+                <td>${roleBadge}</td>
                 <td>${user.no_pekerja || '-'}</td>
                 <td>${user.jawatan || '-'}</td>
                 <td>${user.jabatan || '-'}</td>

@@ -762,7 +762,21 @@ app.get('/api/stats', requireAuth, (req, res) => {
 
 // Get all users (admin only)
 app.get('/api/users', requireAdmin, (req, res) => {
-  db.all('SELECT id, username, nama, no_pekerja, jawatan, jabatan, telefon, profile_pic, created_at FROM users ORDER BY id', (err, rows) => {
+  db.all(`
+    SELECT
+      id,
+      username,
+      nama,
+      no_pekerja,
+      jawatan,
+      jabatan,
+      telefon,
+      profile_pic,
+      created_at,
+      CASE WHEN LOWER(username) = 'admin' THEN 'Admin' ELSE 'Pengguna' END AS role
+    FROM users
+    ORDER BY id
+  `, (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
