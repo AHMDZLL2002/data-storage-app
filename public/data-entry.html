@@ -20,10 +20,10 @@
     .de-shell {
       display: flex;
       flex-direction: column;
-      min-height: 100%;
+      min-height: 100dvh;
       width: 100%;
-      flex: 1;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     /* Topbar */
@@ -58,10 +58,10 @@
     /* Body area: fills remaining space, card stretches full width */
     .de-body {
       flex: 1;
-      overflow: hidden;
+      overflow: visible;
       display: flex;
-      align-items: stretch;
-      padding: 10px 16px 8px;
+      align-items: flex-start;
+      padding: 10px 16px 14px;
     }
 
     /* Card: full viewport width */
@@ -72,8 +72,7 @@
       padding: 14px 22px 12px;
       width: 100%;
       max-width: none;
-      display: flex;
-      flex-direction: column;
+      height: fit-content;
     }
 
     /* Section stripe label */
@@ -96,6 +95,8 @@
       gap: 6px 12px;
       margin-bottom: 8px;
     }
+    .de-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .de-grid-1 { grid-template-columns: 1fr; }
     .g5 { grid-template-columns: repeat(5, 1fr); }
     .g4 { grid-template-columns: repeat(4, 1fr); }
     .g3 { grid-template-columns: repeat(3, 1fr); }
@@ -214,6 +215,7 @@
       .g5 { grid-template-columns: 1fr 1fr; }
       .g4 { grid-template-columns: 1fr 1fr; }
       .g3 { grid-template-columns: 1fr; }
+      .de-grid-2 { grid-template-columns: 1fr; }
       .de-topbar-title { display: none; }
       .de-field input, .de-field select, .de-field textarea { font-size: 15px; padding: 8px 10px; }
       .de-baki-panel { font-size: 11.5px; gap: 6px 14px; }
@@ -240,13 +242,31 @@
     <div class="de-body">
       <div class="de-card">
 
-        <form id="dataForm" autocomplete="off" style="display:flex;flex-direction:column;flex:1;">
+        <form id="dataForm" autocomplete="off" style="display:flex;flex-direction:column;">
 
           <!-- Maklumat Transaksi -->
           <div class="de-sec">&#128203; Maklumat Transaksi</div>
 
-          <!-- Row A: Tarikh | Rujukan | Dibayar Kepada | Aktiviti | Kepala VOT -->
-          <div class="de-grid g5">
+          <!-- Row A: Aktiviti | Kepala VOT -->
+          <div class="de-grid de-grid-2">
+            <div class="de-field">
+              <label>&#127919; Aktiviti</label>
+              <select id="aktiviti" name="aktiviti" onchange="loadKepalaVotOptions(); loadBalance()">
+                <option value="">-- Pilih Aktiviti --</option>
+                <option value="210100">210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA</option>
+                <option value="210200">210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR</option>
+              </select>
+            </div>
+            <div class="de-field">
+              <label>&#128278; Kepala VOT</label>
+              <select id="kepala_vot" name="kepala_vot" onchange="loadBalance()">
+                <option value="">-- Pilih Kepala VOT --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row B: Tarikh | Rujukan -->
+          <div class="de-grid de-grid-2">
             <div class="de-field">
               <label>&#128197; Tarikh <span class="req">*</span></label>
               <input type="date" id="tarikh" name="tarikh" required>
@@ -255,25 +275,19 @@
               <label>&#128290; Rujukan</label>
               <input type="text" id="rujukan" name="rujukan" placeholder="INV-2026-001">
             </div>
+          </div>
+
+          <!-- Row C: Dibayar Kepada -->
+          <div class="de-grid de-grid-1">
             <div class="de-field">
               <label>&#128100; Dibayar Kepada</label>
               <input type="text" id="dibayar_kepada" name="dibayar_kepada" placeholder="Nama penerima">
             </div>
-            <div class="de-field">
-              <label>&#127919; Aktiviti</label>
-              <input type="text" id="aktiviti" name="aktiviti" placeholder="Auto dari Kepala VOT" readonly>
-            </div>
-            <div class="de-field">
-              <label>&#128278; Kepala VOT</label>
-              <select id="kepala_vot" name="kepala_vot">
-                <option value="">-- Pilih Kepala VOT --</option>
-              </select>
-            </div>
           </div>
 
-          <!-- Row B: Perkara (full width) -->
-          <div class="de-grid g4">
-            <div class="de-field" style="grid-column: 1 / -1;">
+          <!-- Row D: Perkara / Perihal -->
+          <div class="de-grid de-grid-1">
+            <div class="de-field">
               <label>&#128221; Perkara / Perihal <span class="req">*</span></label>
               <textarea id="perkara" name="perkara" required placeholder="Penerangan transaksi..." rows="2"></textarea>
             </div>
@@ -318,11 +332,9 @@
   <div class="de-toast" id="toast"></div>
 
   <script>
-    const catIcons = { perbekalan:'&#128230;', pembangunan:'&#127959;&#65039;', gaji:'&#128176;', operasi:'&#9881;&#65039;', penyelenggaraan:'&#128295;', utiliti:'&#128161;' };
     const rawCat  = sessionStorage.getItem('billCategory') || 'perbekalan';
     const category = rawCat.toLowerCase();
-    document.getElementById('catBadge').textContent =
-      category.charAt(0).toUpperCase() + category.slice(1);
+    document.getElementById('catBadge').textContent = 'Masukkan Data';
 
     async function loadUserInfo() {
       try {
@@ -332,21 +344,56 @@
       } catch(e) {}
     }
 
+    function fmtRM(val) {
+      const num = parseFloat(val) || 0;
+      return 'RM ' + num.toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     let _bakiSemasa = 0;
+
+    function mapAktivitiToCategory(aktiviti) {
+      if ((aktiviti || '').startsWith('210200')) return 'pembangunan';
+      return 'perbekalan';
+    }
 
     async function loadBalance() {
       try {
-        const r = await fetch('/api/balance/' + category, { credentials: 'same-origin' });
-        const d = await r.json();
-        if (d.success) {
-          _bakiSemasa = parseFloat(d.baki) || 0;
-          document.getElementById('infoPeruntukan').textContent = 'RM ' + parseFloat(d.peruntukan).toFixed(2);
-          document.getElementById('infoDibelanjakan').textContent = 'RM ' + parseFloat(d.jumlah_bayaran).toFixed(2);
+        const selectedAktiviti = document.getElementById('aktiviti').value;
+        const selectedKod = document.getElementById('kepala_vot').value;
+
+        // Show zero until both Aktiviti and Kepala VOT are selected.
+        if (!selectedAktiviti || !selectedKod) {
+          _bakiSemasa = 0;
+          document.getElementById('infoPeruntukan').textContent = fmtRM(0);
+          document.getElementById('infoDibelanjakan').textContent = fmtRM(0);
           const bakiEl = document.getElementById('infoBakiSemasa');
-          bakiEl.textContent = 'RM ' + _bakiSemasa.toFixed(2);
-          bakiEl.className = _bakiSemasa < 0 ? 'baki-over' : 'baki-ok';
+          bakiEl.textContent = fmtRM(0);
+          bakiEl.className = 'baki-ok';
           updateBakiPreview();
+          return;
         }
+
+        const [kvResp, dataResp] = await Promise.all([
+          fetch('/api/kepala-vot?aktiviti=' + encodeURIComponent(selectedAktiviti), { credentials: 'same-origin' }),
+          fetch('/api/data?all=true', { credentials: 'same-origin' })
+        ]);
+        const kvResult = await kvResp.json();
+        const dataResult = await dataResp.json();
+        if (!kvResult.success || !dataResult.success) return;
+
+        const kv = (kvResult.data || []).find(item => String(item.kod) === String(selectedKod));
+        const peruntukan = kv ? (parseFloat(kv.peruntukan) || 0) : 0;
+        const jumlahBayaran = (dataResult.data || [])
+          .filter(item => (item.aktiviti || '').startsWith(selectedAktiviti) && String(item.kepala_vot || '') === String(selectedKod))
+          .reduce((sum, item) => sum + (parseFloat(item.bayaran) || 0), 0);
+
+        _bakiSemasa = peruntukan - jumlahBayaran;
+        document.getElementById('infoPeruntukan').textContent = fmtRM(peruntukan);
+        document.getElementById('infoDibelanjakan').textContent = fmtRM(jumlahBayaran);
+        const bakiEl = document.getElementById('infoBakiSemasa');
+        bakiEl.textContent = fmtRM(_bakiSemasa);
+        bakiEl.className = _bakiSemasa < 0 ? 'baki-over' : 'baki-ok';
+        updateBakiPreview();
       } catch(e) {}
     }
 
@@ -357,7 +404,7 @@
       const selepasVal = document.getElementById('infoBakiSelepas');
       if (bay > 0) {
         selepasEl.style.display = 'inline';
-        selepasVal.textContent = 'RM ' + after.toFixed(2);
+        selepasVal.textContent = fmtRM(after);
         selepasVal.className = after < 0 ? 'baki-over' : 'baki-ok';
       } else {
         selepasEl.style.display = 'none';
@@ -385,17 +432,20 @@
       e.preventDefault();
       const tarikh  = document.getElementById('tarikh').value;
       const perkara = document.getElementById('perkara').value;
+      const selectedAktiviti = document.getElementById('aktiviti').value;
+      const selectedKepalaVot = document.getElementById('kepala_vot').value;
       if (!tarikh || !perkara) { showToast('Sila isi Tarikh dan Perkara', true); return; }
+      if (!selectedAktiviti || !selectedKepalaVot) { showToast('Sila pilih Aktiviti dan Kepala VOT', true); return; }
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true; btn.textContent = 'Menyimpan...';
 
       const fd = new FormData();
-      fd.append('category',       category);
+      fd.append('category',       mapAktivitiToCategory(selectedAktiviti));
       fd.append('tarikh',         tarikh);
       fd.append('rujukan',        document.getElementById('rujukan').value);
-      fd.append('kepala_vot',     document.getElementById('kepala_vot').value);
-      fd.append('aktiviti',       document.getElementById('aktiviti').value);
+      fd.append('kepala_vot',     selectedKepalaVot);
+      fd.append('aktiviti',       selectedAktiviti);
       fd.append('dibayar_kepada', document.getElementById('dibayar_kepada').value);
       fd.append('perkara',        perkara);
       fd.append('liabiliti',      document.getElementById('liabiliti').value);
@@ -419,23 +469,25 @@
 
     async function loadKepalaVotOptions() {
       try {
-        const resp = await fetch('/api/kepala-vot?category=' + encodeURIComponent(category), { credentials: 'same-origin' });
+        const aktivitiVal = document.getElementById('aktiviti').value;
+        const sel = document.getElementById('kepala_vot');
+        // Clear existing options except placeholder
+        while (sel.options.length > 1) sel.remove(1);
+        sel.value = '';
+        if (!aktivitiVal) return;
+        const resp = await fetch('/api/kepala-vot?aktiviti=' + encodeURIComponent(aktivitiVal), { credentials: 'same-origin' });
         const result = await resp.json();
         if (result.success) {
-          const sel = document.getElementById('kepala_vot');
-          // Clear existing options except placeholder
-          while (sel.options.length > 1) sel.remove(1);
           if (result.data.length === 0) {
             const opt = document.createElement('option');
             opt.value = '';
-            opt.textContent = '-- Tiada pilihan untuk kategori ini --';
+            opt.textContent = '-- Tiada pilihan untuk aktiviti ini --';
             opt.disabled = true;
             sel.appendChild(opt);
           } else {
             result.data.forEach(kv => {
               const opt = document.createElement('option');
               opt.value = kv.kod;
-              opt.dataset.aktiviti = kv.aktiviti || '';
               opt.textContent = kv.kod + (kv.keterangan ? ' - ' + kv.keterangan : '');
               sel.appendChild(opt);
             });
@@ -444,15 +496,9 @@
       } catch(e) {}
     }
 
-    document.getElementById('kepala_vot').addEventListener('change', (e) => {
-      const selected = e.target.options[e.target.selectedIndex];
-      document.getElementById('aktiviti').value = (selected && selected.dataset) ? (selected.dataset.aktiviti || '') : '';
-    });
-
     document.getElementById('tarikh').value = new Date().toISOString().split('T')[0];
     loadUserInfo();
     loadBalance();
-    loadKepalaVotOptions();
   </script>
 </body>
 </html>

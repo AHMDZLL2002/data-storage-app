@@ -2,8 +2,8 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// Use DB_PATH env var on Render (persistent disk), fallback to local for dev
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'app.db');
+// Use DB_PATH env var, else default to Render disk in production, local file in development
+const DB_PATH = process.env.DB_PATH || (process.env.NODE_ENV === 'production' ? '/var/data/app.db' : path.join(__dirname, 'app.db'));
 
 // Ensure parent directory exists (important for persistent disk on Render)
 const dbDir = path.dirname(DB_PATH);
@@ -74,8 +74,10 @@ db.serialize(() => {
       aktiviti TEXT,
       kod TEXT NOT NULL,
       keterangan TEXT,
+      peruntukan REAL DEFAULT 0,
       category TEXT DEFAULT 'umum',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (aktiviti, kod)
     )
   `);
 
@@ -134,6 +136,68 @@ db.serialize(() => {
           else console.log('Added aktiviti column to kepala_vot_list');
         });
       }
+
+      const hasPeruntukan = columns.some(col => col.name === 'peruntukan');
+      if (!hasPeruntukan) {
+        db.run(`ALTER TABLE kepala_vot_list ADD COLUMN peruntukan REAL DEFAULT 0`, (err) => {
+          if (err) console.error('Error adding peruntukan to kepala_vot_list:', err);
+          else console.log('Added peruntukan column to kepala_vot_list');
+        });
+      }
+
+      db.all("PRAGMA index_list(kepala_vot_list)", (indexErr, indexes) => {
+        if (indexErr || !indexes) return;
+
+        const uniqueKodOnlyIndex = indexes.find((index) => index.unique);
+        if (!uniqueKodOnlyIndex) return;
+
+        db.all(`PRAGMA index_info(${JSON.stringify(uniqueKodOnlyIndex.name)})`, (infoErr, infoRows) => {
+          if (infoErr || !infoRows || infoRows.length !== 1 || infoRows[0].name !== 'kod') return;
+
+          db.serialize(() => {
+            db.run(`
+              CREATE TABLE IF NOT EXISTS kepala_vot_list_migrated (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                aktiviti TEXT,
+                kod TEXT NOT NULL,
+                keterangan TEXT,
+                peruntukan REAL DEFAULT 0,
+                category TEXT DEFAULT 'umum',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (aktiviti, kod)
+              )
+            `, (createErr) => {
+              if (createErr) {
+                console.error('Error creating migrated kepala_vot_list table:', createErr);
+                return;
+              }
+
+              db.run(`
+                INSERT INTO kepala_vot_list_migrated (id, aktiviti, kod, keterangan, peruntukan, category, created_at)
+                SELECT id, COALESCE(aktiviti, ''), kod, keterangan, COALESCE(peruntukan, 0), COALESCE(category, 'umum'), created_at
+                FROM kepala_vot_list
+              `, (copyErr) => {
+                if (copyErr) {
+                  console.error('Error copying kepala_vot_list data for migration:', copyErr);
+                  return;
+                }
+
+                db.run(`DROP TABLE kepala_vot_list`, (dropErr) => {
+                  if (dropErr) {
+                    console.error('Error dropping old kepala_vot_list table:', dropErr);
+                    return;
+                  }
+
+                  db.run(`ALTER TABLE kepala_vot_list_migrated RENAME TO kepala_vot_list`, (renameErr) => {
+                    if (renameErr) console.error('Error renaming migrated kepala_vot_list table:', renameErr);
+                    else console.log('Migrated kepala_vot_list uniqueness to aktiviti + kod');
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
     }
   });
 

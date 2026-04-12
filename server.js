@@ -9,6 +9,7 @@ const db = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const DB_FILE_PATH = process.env.DB_PATH || (process.env.NODE_ENV === 'production' ? '/var/data/app.db' : path.join(__dirname, 'app.db'));
 
 // Trust Render's reverse proxy so secure cookies work over HTTPS
 app.set('trust proxy', 1);
@@ -18,9 +19,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Sessions stored in SQLite so they survive server restarts
-const SESSION_DB_DIR = process.env.DB_PATH
-  ? path.dirname(process.env.DB_PATH)
-  : __dirname;
+const SESSION_DB_DIR = path.dirname(DB_FILE_PATH);
 
 app.use(session({
   store: new SQLiteStore({ db: 'sessions.db', dir: SESSION_DB_DIR }),
@@ -37,8 +36,8 @@ app.use(session({
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Persistent uploads directory (uses /var/data/uploads on Render, public/uploads locally)
-const UPLOADS_DIR = process.env.DB_PATH
-  ? path.join(path.dirname(process.env.DB_PATH), 'uploads')
+const UPLOADS_DIR = DB_FILE_PATH.startsWith('/var/data')
+  ? path.join(path.dirname(DB_FILE_PATH), 'uploads')
   : path.join(__dirname, 'public', 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -135,7 +134,7 @@ app.get('/api/user', requireAuth, (req, res) => {
 
 // Diagnostic endpoint - check persistent storage status
 app.get('/api/status', (req, res) => {
-  const dbPath = process.env.DB_PATH || path.join(__dirname, 'app.db');
+  const dbPath = DB_FILE_PATH;
   const sessionDbPath = path.join(SESSION_DB_DIR, 'sessions.db');
   const isPersistent = dbPath.startsWith('/var/data');
   let dbSize = null;
@@ -481,27 +480,59 @@ app.get('/', (req, res) => {
 });
 
 // ── Kepala VOT List API ─────────────────────────────────────────
-// Get kepala vot options, optional ?category= filter
+// Get kepala vot options, optional ?category= or ?aktiviti= filter
 app.get('/api/kepala-vot', requireAuth, (req, res) => {
-  const { category } = req.query;
-  const sql = category
-    ? 'SELECT * FROM kepala_vot_list WHERE LOWER(category) = LOWER(?) ORDER BY kod ASC'
-    : 'SELECT * FROM kepala_vot_list ORDER BY category ASC, kod ASC';
-  const params = category ? [category] : [];
+  const { category, aktiviti } = req.query;
+  let sql, params;
+  
+  if (aktiviti) {
+    // aktiviti como "210100" or "210200" - must match start of stored aktiviti field
+    sql = 'SELECT * FROM kepala_vot_list WHERE SUBSTR(aktiviti, 1, LENGTH(?)) = ? ORDER BY kod ASC';
+    params = [aktiviti, aktiviti];
+    console.log('[API kepala-vot] Filter by aktiviti:', aktiviti);
+  } else if (category) {
+    sql = 'SELECT * FROM kepala_vot_list WHERE LOWER(category) = LOWER(?) ORDER BY kod ASC';
+    params = [category];
+    console.log('[API kepala-vot] Filter by category:', category);
+  } else {
+    sql = 'SELECT * FROM kepala_vot_list ORDER BY category ASC, kod ASC';
+    params = [];
+    console.log('[API kepala-vot] Return all KVs');
+  }
+  
   db.all(sql, params, (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Database error' });
+    if (err) {
+      console.error('[API kepala-vot] DB error:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    console.log('[API kepala-vot] Returned:', rows ? rows.length : 0, 'records');
     res.json({ success: true, data: rows || [] });
   });
 });
 
 // Add kepala vot option (admin only)
 app.post('/api/kepala-vot', requireAdmin, (req, res) => {
-  const { aktiviti, kod, keterangan, category } = req.body;
+  const { aktiviti, kod, keterangan, peruntukan, category } = req.body;
   if (!kod) return res.status(400).json({ error: 'Kod diperlukan' });
   if (!category) return res.status(400).json({ error: 'Kategori diperlukan' });
-  db.run('INSERT INTO kepala_vot_list (aktiviti, kod, keterangan, category) VALUES (?, ?, ?, ?)', [aktiviti || '', kod.trim(), keterangan || '', category.toLowerCase()], function(err) {
-    if (err) return res.status(500).json({ error: 'Database error' });
+  db.run('INSERT INTO kepala_vot_list (aktiviti, kod, keterangan, peruntukan, category) VALUES (?, ?, ?, ?, ?)', [aktiviti || '', kod.trim(), keterangan || '', parseFloat(peruntukan) || 0, category.toLowerCase()], function(err) {
+    if (err) {
+      if (err.message && err.message.includes('UNIQUE')) {
+        return res.status(400).json({ error: 'Kod yang sama sudah wujud untuk aktiviti ini.' });
+      }
+      return res.status(500).json({ error: 'Database error' });
+    }
     res.json({ success: true, id: this.lastID });
+  });
+});
+
+// Update kepala vot allocation (admin only)
+app.put('/api/kepala-vot/:id', requireAdmin, (req, res) => {
+  const amount = parseFloat(req.body.peruntukan) || 0;
+  db.run('UPDATE kepala_vot_list SET peruntukan = ? WHERE id = ?', [amount, req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (this.changes === 0) return res.status(404).json({ error: 'Tidak dijumpai' });
+    res.json({ success: true });
   });
 });
 
@@ -855,7 +886,7 @@ app.get('/api/export/csv', requireAuth, (req, res) => {
 // GET /api/penyata/pdf?category=perbekalan&month=01
 // ══════════════════════════════════════════════════════════════════
 app.get('/api/penyata/pdf', requireAuth, (req, res) => {
-  const { month, category } = req.query;
+  const { month, category, kepala_vot, kepala_vot_desc } = req.query;
   const monthNames = ['Januari','Februari','Mac','April','Mei','Juni','Julai','Ogos','September','Oktober','November','Disember'];
 
   db.all('SELECT * FROM data ORDER BY category ASC, tarikh ASC, created_at ASC', [], (err, rows) => {
@@ -863,19 +894,34 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
 
     let data = rows || [];
     if (category) data = data.filter(r => (r.category||'').toLowerCase() === category.toLowerCase());
+    if (kepala_vot) data = data.filter(r => String(r.kepala_vot || '').trim() === String(kepala_vot).trim());
     if (month) data = data.filter(r => {
       if (!r.tarikh) return false;
       return String(new Date(r.tarikh).getMonth() + 1).padStart(2,'0') === month;
     });
 
+    const selectedKod = kepala_vot ? String(kepala_vot).trim() : '';
+    const descFromQuery = kepala_vot_desc ? String(kepala_vot_desc).trim() : '';
+    const runPdf = (resolvedKodDesc = '') => {
     try {
       const PDFDocument = require('pdfkit');
       const fsLib = require('fs');
-      const catLabel   = category ? category.charAt(0).toUpperCase()+category.slice(1) : 'Semua Kategori';
+      const bukuVotMap = {
+        perbekalan: '210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA',
+        pembangunan: '210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR',
+        gaji: 'GAJI',
+        operasi: 'OPERASI',
+        penyelenggaraan: 'PENYELENGGARAAN',
+        utiliti: 'UTILITI'
+      };
+      const catNorm = (category || '').toLowerCase();
+      const bukuVotLabel = bukuVotMap[catNorm] || 'SEMUA BUKU VOT';
       const monthLabel = month ? monthNames[parseInt(month)-1] : 'Semua Bulan';
+      const selectedKodDesc = resolvedKodDesc;
+      const selectedKodLabel = selectedKod ? (selectedKodDesc ? `${selectedKod} - ${selectedKodDesc}` : selectedKod) : 'Semua Kod Kepala VOT';
 
       const doc = new PDFDocument({ size:'A4', layout:'landscape', margin:0, bufferPages:true });
-      const filename = `Penyata_${catLabel}_${monthLabel}.pdf`.replace(/ /g,'_');
+      const filename = `Penyata_${bukuVotLabel}_${monthLabel}_${selectedKod || 'SemuaKod'}.pdf`.replace(/ /g,'_');
       res.setHeader('Content-Type','application/pdf');
       res.setHeader('Content-Disposition',`attachment; filename="${filename}"`);
       doc.pipe(res);
@@ -887,26 +933,29 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       const NAVY = '#1a3a6b';
       const LIGHT = '#eef2ff';
 
-      // columns (total ≈ 784 fits in CONTENT_W 786)
+      // Accountant-style columns
       const cols = [
-        { h:'No.',            w:22,  a:'center', k:null              },
-        { h:'Tarikh',         w:62,  a:'left',   k:'tarikh'          },
-        { h:'Rujukan',        w:60,  a:'left',   k:'rujukan'         },
-        { h:'Kepala VOT',     w:68,  a:'left',   k:'kepala_vot'      },
-        { h:'Dibayar Kepada', w:100, a:'left',   k:'dibayar_kepada'  },
-        { h:'Perkara',        w:168, a:'left',   k:'perkara'         },
-        { h:'Kategori',       w:62,  a:'left',   k:'category'        },
-        { h:'Bayaran (RM)',   w:66,  a:'right',  k:'bayaran'         },
-        { h:'J. Bayaran',     w:70,  a:'right',  k:'jumlah_bayaran'  },
-        { h:'Baki (RM)',      w:66,  a:'right',  k:'baki'            },
+        { h:'Bil.',                 w:28,  a:'center', k:null             },
+        { h:'Tarikh',               w:62,  a:'left',   k:'tarikh'         },
+        { h:'Rujukan',              w:66,  a:'left',   k:'rujukan'        },
+        { h:'Butiran Transaksi',    w:216, a:'left',   k:'perkara'        },
+        { h:'Dibayar Kepada',       w:128, a:'left',   k:'dibayar_kepada' },
+        { h:'Amaun (RM)',           w:86,  a:'right',  k:'bayaran'        },
+        { h:'Jumlah Bayaran (RM)',  w:100, a:'right',  k:'jumlah_bayaran' },
+        { h:'Baki Semasa (RM)',     w:100, a:'right',  k:'baki'           },
       ];
-      const ROW_H = 17;
+      const ROW_H = 19;
       const HDR_H = 22;
       const FOOT_H = 20;
 
-      const HEADER_H = 88;  // taller header for clarity
+      const HEADER_H = 102;
       const LINE1_Y  = 10;
       const LOGO_SIZE = 65;
+
+      function fmtAmount(n) {
+        const num = parseFloat(n || 0) || 0;
+        return num.toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
 
       function drawHeader(isFirst) {
         // Background gradient-like: light top band
@@ -936,25 +985,29 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         if (isFirst) {
           // Organisation name
           doc.fillColor(NAVY).fontSize(16).font('Helvetica-Bold')
-             .text('SISTEM PENGURUSAN KEWANGAN VOT', textX, 13, { width:textW });
+             .text('SISTEM PENGURUSAN KEWANGAN', textX, 11, { width:textW });
+           doc.fillColor('#4b5f93').fontSize(9.5).font('Helvetica')
+             .text('Sekretariat Sabah Maju Jaya, Jabatan Ketua Menteri', textX, 28, { width:textW });
           // Thin underline
-          doc.rect(textX, 32, textW * 0.65, 1).fill('#c8a951');
+           doc.rect(textX, 42, textW * 0.65, 1).fill('#c8a951');
           // Report subtitle
           doc.fillColor('#2c4a8c').fontSize(11).font('Helvetica-Bold')
-             .text('PENYATA TRANSAKSI', textX, 37, { width:textW });
+             .text('PENYATA TRANSAKSI', textX, 47, { width:textW });
           // Details line
-          doc.fillColor('#555').fontSize(8.5).font('Helvetica')
-             .text(`Kategori: ${catLabel}`, textX, 54, { width:textW });
-          doc.fillColor('#555').fontSize(8.5)
-             .text(`Bulan: ${monthLabel}`, textX, 65, { width:textW });
+           doc.fillColor('#555').fontSize(8.5).font('Helvetica')
+             .text(`Maklumat Buku VOT: ${bukuVotLabel}`, textX, 62, { width:textW });
+           doc.fillColor('#555').fontSize(8.5)
+             .text(`Kod Kepala VOT: ${selectedKodLabel}`, textX, 74, { width:textW });
+           doc.fillColor('#555').fontSize(8.5)
+             .text(`Bulan: ${monthLabel}`, textX, 86, { width:textW });
           // Print date — right aligned
           doc.fillColor('#888').fontSize(7.5)
-             .text(`Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`, MX, HEADER_H - 18, { width:CONTENT_W, align:'right' });
+             .text(`Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`, MX, HEADER_H - 19, { width:CONTENT_W, align:'right' });
         } else {
           doc.fillColor(NAVY).fontSize(13).font('Helvetica-Bold')
              .text('PENYATA TRANSAKSI', textX, 18, { width:textW });
           doc.fillColor('#555').fontSize(8.5).font('Helvetica')
-             .text(`Kategori: ${catLabel}   ·   Bulan: ${monthLabel}   ·   (sambungan)`, textX, 40, { width:textW });
+             .text(`Buku VOT: ${bukuVotLabel}   ·   Kod: ${selectedKod || 'Semua'}   ·   Bulan: ${monthLabel}   ·   (sambungan)`, textX, 40, { width:textW });
           doc.fillColor('#888').fontSize(7.5)
              .text(`Tarikh Cetak: ${new Date().toLocaleDateString('ms-MY')}`, MX, HEADER_H - 18, { width:CONTENT_W, align:'right' });
         }
@@ -983,11 +1036,11 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
             val = String(rowNum);
           } else if (['bayaran','jumlah_bayaran','baki'].includes(c.k)) {
             const n = parseFloat(row[c.k]||0);
-            val = n.toFixed(2);
+            val = fmtAmount(n);
             doc.fillColor(c.k==='baki' && n<0 ? '#c0392b' : '#333');
           } else {
             const raw = (row[c.k]||'-').toString();
-            const limit = c.k==='perkara' ? 48 : c.k==='dibayar_kepada' ? 22 : 20;
+            const limit = c.k==='perkara' ? 68 : c.k==='dibayar_kepada' ? 26 : 22;
             val = raw.length > limit ? raw.substring(0,limit)+'…' : raw;
           }
           doc.text(val, x+3, y+5, { width:c.w-6, align:c.a });
@@ -999,14 +1052,14 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
 
       function drawTotals(y, tot) {
         doc.rect(MX, y, CONTENT_W, HDR_H).fill(NAVY);
-        doc.fillColor('#fff').fontSize(8).font('Helvetica-Bold');
+        doc.fillColor('#fff').fontSize(7).font('Helvetica-Bold');
         let x = MX;
         cols.forEach((c,ci) => {
           let val = '';
-          if (ci===5) val='JUMLAH KESELURUHAN';
-          if (ci===7) val=tot.bayaran.toFixed(2);
-          if (ci===8) val=tot.jumlah.toFixed(2);
-          if (ci===9) val=tot.baki.toFixed(2);
+          if (ci===4) val='JUMLAH KESELURUHAN (RM)';
+          if (ci===5) val='RM ' + fmtAmount(tot.bayaran);
+          if (ci===6) val='RM ' + fmtAmount(tot.jumlah_bayaran);
+          if (ci===7) val='RM ' + fmtAmount(tot.baki);
           doc.text(val, x+3, y+(HDR_H-8)/2+1, { width:c.w-6, align:c.a });
           x += c.w;
         });
@@ -1014,33 +1067,40 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       }
 
       // ── Render ───────────────────────────────────────────────────
-      let yPos = drawHeader(true);
+      const TABLE_TOP_GAP = 8;
+      const TABLE_BOTTOM_GAP = 8;
+
+      let yPos = drawHeader(true) + TABLE_TOP_GAP;
       yPos = drawTableHeader(yPos);
-      const tot = { bayaran:0, jumlah:0, baki:0 };
+      const tot = { bayaran:0, jumlah_bayaran:0, baki:0 };
+      const BOTTOM_RESERVE = FOOT_H + HDR_H + 26 + TABLE_BOTTOM_GAP;
 
       data.forEach((row, idx) => {
-        if (yPos + ROW_H > PH - FOOT_H - HDR_H) {
+        if (yPos + ROW_H > PH - BOTTOM_RESERVE) {
           doc.addPage({ size:'A4', layout:'landscape', margin:0 });
-          yPos = drawHeader(false);
+          yPos = drawHeader(false) + TABLE_TOP_GAP;
           yPos = drawTableHeader(yPos);
         }
         yPos = drawRow(row, yPos, idx+1, idx%2===0);
         tot.bayaran += parseFloat(row.bayaran)||0;
-        tot.jumlah  += parseFloat(row.jumlah_bayaran)||0;
+        tot.jumlah_bayaran += parseFloat(row.jumlah_bayaran)||0;
       });
       tot.baki = data.length>0 ? (parseFloat(data[data.length-1].baki)||0) : 0;
 
-      if (yPos + HDR_H > PH - FOOT_H) {
+      // Place totals box after the last data row with spacing.
+      const TOTALS_GAP = 10;
+      let totalsY = yPos + TOTALS_GAP;
+      if (totalsY + HDR_H + 16 > PH - FOOT_H - 6) {
         doc.addPage({ size:'A4', layout:'landscape', margin:0 });
-        yPos = 50;
+        yPos = drawHeader(false) + TABLE_TOP_GAP;
+        yPos = drawTableHeader(yPos);
+        totalsY = yPos + TOTALS_GAP;
       }
-      yPos = drawTotals(yPos, tot);
+      drawTotals(totalsY, tot);
 
-      // Summary
-      if (yPos + 14 < PH - FOOT_H) {
-        doc.fillColor('#444').fontSize(8.5).font('Helvetica')
-           .text(`Jumlah Rekod: ${data.length}   ·   Jumlah Bayaran: RM ${tot.bayaran.toFixed(2)}   ·   Jumlah Keseluruhan: RM ${tot.jumlah.toFixed(2)}`, MX, yPos+6, { width:CONTENT_W });
-      }
+      // Summary line below totals box
+      doc.fillColor('#444').fontSize(8.5).font('Helvetica')
+      .text(`Jumlah Rekod: ${data.length}   ·   Amaun (RM): ${fmtAmount(tot.bayaran)}   ·   Jumlah Bayaran (RM): ${fmtAmount(tot.jumlah_bayaran)}   ·   Baki Semasa (RM): ${fmtAmount(tot.baki)}`, MX, totalsY + HDR_H + 4, { width:CONTENT_W });
 
       // ── Footer on every page ─────────────────────────────────────
       const pc = doc.bufferedPageRange().count;
@@ -1050,7 +1110,7 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         doc.rect(0, fy-5, PW, 23).fill('#f0f2f8');
         doc.rect(0, fy-6, PW, 1).fill(NAVY);
         doc.fillColor('#666').fontSize(7).font('Helvetica');
-        doc.text(`Dijana pada: ${new Date().toLocaleString('ms-MY')}   ·   Sistem Pengurusan Kewangan VOT`, MX, fy, { width:CONTENT_W*0.7 });
+        doc.text(`Dijana pada: ${new Date().toLocaleString('ms-MY')}   ·   Sistem Pengurusan Kewangan`, MX, fy, { width:CONTENT_W*0.7 });
         doc.text(`Halaman ${p+1} daripada ${pc}`, MX+CONTENT_W*0.7, fy, { width:CONTENT_W*0.3, align:'right' });
       }
 
@@ -1060,6 +1120,21 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       console.error('PDF penyata error:', e);
       if (!res.headersSent) res.status(500).json({ error:'PDF generation failed' });
     }
+    };
+
+    if (selectedKod && !descFromQuery) {
+      db.get(
+        'SELECT keterangan FROM kepala_vot_list WHERE kod = ? AND LOWER(category) = LOWER(?) ORDER BY id DESC LIMIT 1',
+        [selectedKod, (category || '')],
+        (kvErr, kvRow) => {
+          const resolved = (!kvErr && kvRow && kvRow.keterangan) ? String(kvRow.keterangan).trim() : '';
+          runPdf(resolved);
+        }
+      );
+      return;
+    }
+
+    runPdf(descFromQuery);
   });
 });
 

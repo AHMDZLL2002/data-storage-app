@@ -54,43 +54,22 @@
             <span class="menu-text">INBOX</span>
           </button>
 
-          <button class="menu-item" onclick="switchView('register-bill')">
+          <button class="menu-item" onclick="registerBill()">
             <span class="menu-icon">📋</span>
             <span class="menu-text">Daftar Bill</span>
           </button>
 
           <div class="menu-section">
             <div class="menu-section-title">Buku Vot</div>
-            <button class="menu-item submenu" onclick="switchView('buku-perbekalan')">
+            <button class="menu-item submenu" onclick="switchView('buku-210100')">
               <span class="menu-icon">📚</span>
-              <span class="menu-text">Perbekalan</span>
+              <span class="menu-text">210100-PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA</span>
             </button>
-            <button class="menu-item submenu" onclick="switchView('buku-pembangunan')">
-              <span class="menu-icon">🏗️</span>
-              <span class="menu-text">Pembangunan</span>
-            </button>
-            <button class="menu-item submenu" onclick="switchView('buku-gaji')">
-              <span class="menu-icon">💰</span>
-              <span class="menu-text">Gaji</span>
-            </button>
-            <button class="menu-item submenu" onclick="switchView('buku-operasi')">
-              <span class="menu-icon">⚙️</span>
-              <span class="menu-text">Operasi</span>
-            </button>
-            <button class="menu-item submenu" onclick="switchView('buku-penyelenggaraan')">
-              <span class="menu-icon">🔧</span>
-              <span class="menu-text">Penyelenggaraan</span>
-            </button>
-            <button class="menu-item submenu" onclick="switchView('buku-utiliti')">
-              <span class="menu-icon">&#128161;</span>
-              <span class="menu-text">Utiliti</span>
+            <button class="menu-item submenu" onclick="switchView('buku-210200')">
+              <span class="menu-icon">🎯</span>
+              <span class="menu-text">210200-PROGRAM MENOKTAHKAN MISKIN TEGAR</span>
             </button>
           </div>
-
-          <button class="menu-item" onclick="switchView('baki-vot')">
-            <span class="menu-icon">&#128200;</span>
-            <span class="menu-text">Baki VOT</span>
-          </button>
 
           <button class="menu-item" onclick="switchView('statistics')">
             <span class="menu-icon">📈</span>
@@ -146,131 +125,80 @@
           </div>
         </div>
 
-        <!-- Daftar Bill - Register Bill -->
-        <div id="registerBillView" class="view-section" style="display: none;">
-          <h1>📋 Daftar Bill</h1>
-          <p style="color: #666; margin-bottom: 30px;">Pilih kategori bill untuk mendaftar transaksi baru</p>
-          <div class="menu-boxes">
-            <div class="menu-box" onclick="registerBill('Perbekalan')">
-              <div style="font-size: 40px; margin-bottom: 10px;">📦</div>
-              <h3>Perbekalan</h3>
-              <p>Daftar Bill Perbekalan</p>
-            </div>
-            <div class="menu-box" onclick="registerBill('Pembangunan')">
-              <div style="font-size: 40px; margin-bottom: 10px;">🏗️</div>
-              <h3>Pembangunan</h3>
-              <p>Daftar Bill Pembangunan</p>
-            </div>
-            <div class="menu-box" onclick="registerBill('Gaji')">
-              <div style="font-size: 40px; margin-bottom: 10px;">💰</div>
-              <h3>Gaji</h3>
-              <p>Daftar Bill Gaji</p>
-            </div>
-            <div class="menu-box" onclick="registerBill('Operasi')">
-              <div style="font-size: 40px; margin-bottom: 10px;">⚙️</div>
-              <h3>Operasi</h3>
-              <p>Daftar Bill Operasi</p>
-            </div>
-            <div class="menu-box" onclick="registerBill('Penyelenggaraan')">
-              <div style="font-size: 40px; margin-bottom: 10px;">🔧</div>
-              <h3>Penyelenggaraan</h3>
-              <p>Daftar Bill Penyelenggaraan</p>
-            </div>
-            <div class="menu-box" onclick="registerBill('Utiliti')">
-              <div style="font-size: 40px; margin-bottom: 10px;">💡</div>
-              <h3>Utiliti</h3>
-              <p>Daftar Bill Utiliti</p>
-            </div>
-          </div>
-        </div>
-
         <!-- Buku Vot - Perbekalan -->
         <div id="bukuPerbekalanView" class="view-section" style="display: none;">
           <div class="view-header">
-            <h1>Buku Vot - Perbekalan</h1>
-            <div class="view-controls">
-              <select id="monthSelectPerbekalan" onchange="loadBukuVot('perbekalan')" class="month-select">
-                <option value="">Semua Bulan</option>
-                <option value="01">Januari</option>
-                <option value="02">Februari</option>
-                <option value="03">Maret</option>
-                <option value="04">April</option>
-                <option value="05">Mei</option>
-                <option value="06">Juni</option>
-                <option value="07">Juli</option>
-                <option value="08">Agustus</option>
-                <option value="09">September</option>
-                <option value="10">Oktober</option>
-                <option value="11">November</option>
-                <option value="12">Desember</option>
-              </select>
-              <select id="kepalaVotSelectPerbekalan" onchange="loadBukuVot('perbekalan')" class="month-select">
-                <option value="">Semua Kepala VOT</option>
-              </select>
-              <button class="export-btn export-pdf" onclick="exportBukuVot('perbekalan','pdf')" title="Export Penyata PDF">&#128196; PDF</button>
-              <button class="export-btn export-excel" onclick="exportBukuVot('perbekalan','excel')" title="Export Penyata Excel">&#128202; Excel</button>
-            </div>
+            <h1>Buku Vot - 210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA</h1>
           </div>
-          <div class="table-wrapper">
-          <table class="data-table" id="bukuPerbekalanTable">
-            <thead>
-              <tr>
-                <th>Tarikh</th>
-                <th>Nama / Dibayar Kepada</th>
-                <th>Rujukan / Perkara</th>
-                <th>Kod Peruntukan</th>
-                <th>Amaunt Bayaran</th>
-                <th>Jumlah Bayaran</th>
-                <th>Baki</th>
-              </tr>
-            </thead>
-            <tbody id="bukuPerbekalanBody"></tbody>
-          </table>
+          <div class="kv-summary-panel">
+            <div class="kv-summary-head">
+              <div>
+                <h3>Senarai Kepala VOT</h3>
+                <p>Paparan peruntukan, baki semasa, dan kadar penggunaan untuk setiap Kepala VOT.</p>
+              </div>
+            </div>
+            <div id="bukuPerbekalanCards" class="kv-card-grid">
+              <div class="kv-card-empty">Memuatkan senarai Kepala VOT...</div>
+            </div>
           </div>
         </div>
 
         <!-- Buku Vot - Pembangunan -->
         <div id="bukuPembangunanView" class="view-section" style="display: none;">
           <div class="view-header">
-            <h1>Buku Vot - Pembangunan</h1>
-            <div class="view-controls">
-              <select id="monthSelectPembangunan" onchange="loadBukuVot('pembangunan')" class="month-select">
-                <option value="">Semua Bulan</option>
-                <option value="01">Januari</option>
-                <option value="02">Februari</option>
-                <option value="03">Maret</option>
-                <option value="04">April</option>
-                <option value="05">Mei</option>
-                <option value="06">Juni</option>
-                <option value="07">Juli</option>
-                <option value="08">Agustus</option>
-                <option value="09">September</option>
-                <option value="10">Oktober</option>
-                <option value="11">November</option>
-                <option value="12">Desember</option>
-              </select>
-              <select id="kepalaVotSelectPembangunan" onchange="loadBukuVot('pembangunan')" class="month-select">
-                <option value="">Semua Kepala VOT</option>
-              </select>
-              <button class="export-btn export-pdf" onclick="exportBukuVot('pembangunan','pdf')" title="Export Penyata PDF">&#128196; PDF</button>
-              <button class="export-btn export-excel" onclick="exportBukuVot('pembangunan','excel')" title="Export Penyata Excel">&#128202; Excel</button>
+            <h1>Buku Vot - 210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR</h1>
+          </div>
+          <div class="kv-summary-panel">
+            <div id="bukuPembangunanCards" class="kv-card-grid"></div>
+          </div>
+        </div>
+
+        <!-- Penyata Transaksi Buku VOT -->
+        <div id="penyataTransaksiView" class="view-section" style="display: none;">
+          <div class="view-header">
+            <div>
+              <h1 id="penyataTitle">Penyata Transaksi Buku VOT</h1>
+              <p id="penyataSubtitle" style="margin:6px 0 0;color:#6e7da3;font-size:0.95rem;">Paparan transaksi mengikut kod Kepala VOT yang dipilih.</p>
+            </div>
+            <div class="view-controls" style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button class="export-btn" onclick="backToBukuVot()" title="Kembali ke senarai Kepala VOT">&#11013; Kembali</button>
+                <select id="monthSelectPenyata" onchange="loadPenyataTransaksi()" class="month-select">
+                  <option value="">Semua Bulan</option>
+                  <option value="01">Januari</option>
+                  <option value="02">Februari</option>
+                  <option value="03">Maret</option>
+                  <option value="04">April</option>
+                  <option value="05">Mei</option>
+                  <option value="06">Juni</option>
+                  <option value="07">Juli</option>
+                  <option value="08">Agustus</option>
+                  <option value="09">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+                </select>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button class="export-btn export-pdf" onclick="exportBukuVot(currentPenyataCategory,'pdf')" title="Export Penyata PDF">&#128196; PDF</button>
+                <button class="export-btn export-excel" onclick="exportBukuVot(currentPenyataCategory,'excel')" title="Export Penyata Excel">&#128202; Excel</button>
+              </div>
             </div>
           </div>
           <div class="table-wrapper">
-          <table class="data-table" id="bukuPembangunanTable">
-            <thead>
-              <tr>
-                <th>Tarikh</th>
-                <th>Nama / Dibayar Kepada</th>
-                <th>Rujukan / Perkara</th>
-                <th>Kod Peruntukan</th>
-                <th>Amaunt Bayaran</th>
-                <th>Jumlah Bayaran</th>
-                <th>Baki</th>
-              </tr>
-            </thead>
-            <tbody id="bukuPembangunanBody"></tbody>
-          </table>
+            <table class="data-table" id="penyataTransaksiTable">
+              <thead>
+                <tr>
+                  <th>Tarikh</th>
+                  <th>Nama / Dibayar Kepada</th>
+                  <th>Rujukan / Perkara</th>
+                  <th>Amaunt Bayaran</th>
+                  <th>Jumlah Bayaran</th>
+                  <th>Baki</th>
+                </tr>
+              </thead>
+              <tbody id="penyataTransaksiBody"></tbody>
+            </table>
           </div>
         </div>
 
@@ -459,56 +387,43 @@
           <div class="view-header">
             <h1>&#128278; Urus Senarai Kepala VOT</h1>
           </div>
-          <div class="form-card" style="max-width:700px;margin:0 auto 24px;">
-            <div style="margin-bottom:6px;font-size:0.82rem;font-weight:700;color:#4a5eaa;">PROGRAM : 210000 SEKRETARIAT SABAH MAJU JAYA</div>
-            <h3 style="margin-bottom:16px;">Maklumat Kepala VOT</h3>
-            <div style="display:grid;grid-template-columns:1fr 120px 1fr 1fr auto;gap:12px;align-items:end;">
+          <div class="form-card kv-admin-card">
+            <div class="kv-admin-program">PROGRAM : 210000 SEKRETARIAT SABAH MAJU JAYA</div>
+            <h3 class="kv-admin-title">Maklumat Kepala VOT</h3>
+            <div class="kv-admin-grid">
               <div>
-                <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Aktiviti</label>
-                <input type="text" id="kvAktivitiInput" placeholder="cth: Program Operasi" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
-              </div>
-              <div>
-                <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Kod</label>
-                <input type="text" id="kvKodInput" placeholder="cth: A001" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
-              </div>
-              <div>
-                <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Keterangan</label>
-                <input type="text" id="kvKeteranganInput" placeholder="cth: Alat Tulis" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
-              </div>
-              <div>
-                <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Kategori</label>
-                <select id="kvCategoryInput" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
-                  <option value="perbekalan">Perbekalan</option>
-                  <option value="pembangunan">Pembangunan</option>
-                  <option value="gaji">Gaji</option>
-                  <option value="operasi">Operasi</option>
-                  <option value="penyelenggaraan">Penyelenggaraan</option>
-                  <option value="utiliti">Utiliti</option>
+                <label class="kv-admin-label">Aktiviti</label>
+                <select id="kvAktivitiInput" class="kv-admin-input">
+                  <option value="210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA">210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA</option>
+                  <option value="210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR">210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR</option>
                 </select>
               </div>
-              <button onclick="saveKepalaVot()" style="padding:8px 18px;background:#667eea;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;white-space:nowrap;">Simpan</button>
+              <div>
+                <label class="kv-admin-label">Kod</label>
+                <input type="text" id="kvKodInput" placeholder="cth: A001" class="kv-admin-input">
+              </div>
+              <div>
+                <label class="kv-admin-label">Keterangan</label>
+                <input type="text" id="kvKeteranganInput" placeholder="cth: Alat Tulis" class="kv-admin-input">
+              </div>
+              <div>
+                <label class="kv-admin-label">Jumlah Peruntukan (RM)</label>
+                <input type="number" id="kvPeruntukanInput" step="0.01" min="0" placeholder="0.00" class="kv-admin-input">
+              </div>
+              <button onclick="saveKepalaVot()" class="kv-admin-save-btn">Simpan</button>
             </div>
-            <div id="kvMsg" style="margin-top:10px;font-size:0.85rem;"></div>
+            <div id="kvMsg" class="kv-admin-msg"></div>
           </div>
-          <!-- Category filter -->
-          <div style="max-width:700px;margin:0 auto 14px;display:flex;align-items:center;gap:12px;">
-            <div style="display:flex;align-items:center;gap:8px;background:#f4f6ff;border:1.5px solid #d0d8f8;border-radius:9px;padding:8px 16px;flex:1;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-              <label style="font-size:12px;font-weight:700;color:#667eea;white-space:nowrap;">Tapis Kategori:</label>
-              <select id="kvFilterCategory" onchange="loadKepalaVotAdmin()" style="border:none;background:transparent;font-size:13px;font-weight:600;color:#333;cursor:pointer;outline:none;flex:1;">
-                <option value="">Semua Kategori</option>
-                <option value="perbekalan">Perbekalan</option>
-                <option value="pembangunan">Pembangunan</option>
-                <option value="gaji">Gaji</option>
-                <option value="operasi">Operasi</option>
-                <option value="penyelenggaraan">Penyelenggaraan</option>
-                <option value="utiliti">Utiliti</option>
-              </select>
-            </div>
-            <span id="kvCountBadge" style="font-size:12px;color:#888;white-space:nowrap;"></span>
+          <div class="kv-admin-filter-row">
+            <select id="kvFilterAktiviti" onchange="loadKepalaVotAdmin()" class="kv-admin-filter-select">
+              <option value="">📋 Tunjuk Semua Aktiviti</option>
+              <option value="210100">210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA</option>
+              <option value="210200">210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR</option>
+            </select>
+            <span id="kvCountBadge" class="kv-admin-count"></span>
           </div>
 
-          <div class="table-wrapper" style="max-width:700px;margin:0 auto;">
+          <div class="table-wrapper kv-admin-table-wrapper">
             <table class="data-table" id="kepalaVotAdminTable">
               <thead>
                 <tr>
@@ -516,7 +431,7 @@
                   <th>Aktiviti</th>
                   <th>Kod</th>
                   <th>Keterangan</th>
-                  <th>Kategori</th>
+                  <th>Peruntukan</th>
                   <th>Tindakan</th>
                 </tr>
               </thead>
@@ -524,54 +439,6 @@
                 <tr><td colspan="6" style="text-align:center;padding:20px;">Memuatkan...</td></tr>
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <!-- Baki VOT View -->
-        <div id="bakiVotView" class="view-section" style="display: none;">
-          <div class="view-header">
-            <h1>&#128200; Baki VOT - Peruntukan Kategori</h1>
-          </div>
-
-          <!-- Budget summary table -->
-          <div class="table-wrapper" style="margin-bottom: 32px;">
-            <table class="data-table" id="bakiVotTable">
-              <thead>
-                <tr>
-                  <th>Kategori</th>
-                  <th>Peruntukan (RM)</th>
-                  <th>Jumlah Bayaran (RM)</th>
-                  <th>Baki (RM)</th>
-                  <th>Tindakan</th>
-                </tr>
-              </thead>
-              <tbody id="bakiVotBody"></tbody>
-            </table>
-          </div>
-
-          <!-- Set peruntukan form -->
-          <div style="background:#f8f9ff;border:1px solid #e4e8ff;border-radius:10px;padding:20px;max-width:520px;">
-            <h3 style="margin:0 0 14px;color:#667eea;font-size:14px;">&#9997;&#65039; Kemaskini Peruntukan</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;display:block;margin-bottom:4px;">Kategori</label>
-                <select id="budgetCategory" style="width:100%;padding:7px 10px;border:1.5px solid #e2e2e2;border-radius:6px;font-size:13px;">
-                  <option value="perbekalan">Perbekalan</option>
-                  <option value="pembangunan">Pembangunan</option>
-                  <option value="gaji">Gaji</option>
-                  <option value="operasi">Operasi</option>
-                  <option value="penyelenggaraan">Penyelenggaraan</option>
-                  <option value="utiliti">Utiliti</option>
-                </select>
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;display:block;margin-bottom:4px;">Peruntukan (RM)</label>
-                <input type="number" id="budgetAmount" step="0.01" min="0" placeholder="0.00"
-                  style="width:100%;padding:7px 10px;border:1.5px solid #e2e2e2;border-radius:6px;font-size:13px;box-sizing:border-box;">
-              </div>
-            </div>
-            <button onclick="saveBudget()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:6px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;">&#128190; Simpan Peruntukan</button>
-            <span id="budgetMsg" style="margin-left:12px;font-size:12px;color:#2ecc71;display:none;">Berjaya disimpan!</span>
           </div>
         </div>
 
@@ -617,7 +484,7 @@
           </div>
           
           <div class="category-stats-section">
-            <h2>Statistik Mengikut Kategori Buku Vot</h2>
+            <h2>Statistik Mengikut Buku VOT</h2>
             <div id="categoryStats" class="category-stats-container">
               <!-- Category statistics will be populated here -->
             </div>
@@ -679,10 +546,9 @@
                 </th>
                 <th>Tarikh</th>
                 <th>Rujukan</th>
-                <th>Kepala VOT</th>
+                <th>Buku VOT + Kepala VOT</th>
                 <th>Dibayar Kepada</th>
                 <th>Perkara</th>
-                <th>Kategori</th>
                 <th>Liabiliti</th>
                 <th>Bayaran</th>
                 <th>Jumlah Bayaran</th>
@@ -1039,35 +905,21 @@
           loadNotices();
           break;
         case 'register-bill':
-          document.getElementById('registerBillView').style.display = 'block';
+          registerBill();
           break;
-        case 'buku-perbekalan':
+        case 'buku-210100':
+          currentPenyataKod = '';
           document.getElementById('bukuPerbekalanView').style.display = 'block';
           loadBukuVot('perbekalan');
           break;
-        case 'buku-pembangunan':
+        case 'buku-210200':
+          currentPenyataKod = '';
           document.getElementById('bukuPembangunanView').style.display = 'block';
           loadBukuVot('pembangunan');
           break;
-        case 'buku-gaji':
-          document.getElementById('bukuGajiView').style.display = 'block';
-          loadBukuVot('gaji');
-          break;
-        case 'buku-operasi':
-          document.getElementById('bukuOperasiView').style.display = 'block';
-          loadBukuVot('operasi');
-          break;
-        case 'buku-penyelenggaraan':
-          document.getElementById('bukuPenyelenggaraanView').style.display = 'block';
-          loadBukuVot('penyelenggaraan');
-          break;
-        case 'buku-utiliti':
-          document.getElementById('bukuUtilitiView').style.display = 'block';
-          loadBukuVot('utiliti');
-          break;
-        case 'baki-vot':
-          document.getElementById('bakiVotView').style.display = 'block';
-          loadBakiVot();
+        case 'penyata-transaksi':
+          document.getElementById('penyataTransaksiView').style.display = 'block';
+          loadPenyataTransaksi();
           break;
         case 'statistics':
           document.getElementById('statisticsView').style.display = 'block';
@@ -1112,111 +964,146 @@
     }
 
     // Load Buku Vot (by category) - running totals recomputed from data
+    const categoryAktiviti = { perbekalan: '210100', pembangunan: '210200' };
+    let currentPenyataCategory = 'perbekalan';
+    let currentPenyataKod = '';
+    let currentPenyataKodDesc = '';
+
     async function loadBukuVot(category) {
+      loadKepalaVotCards(category);
+    }
+
+    function backToBukuVot() {
+      const targetView = currentPenyataCategory === 'pembangunan' ? 'buku-210200' : 'buku-210100';
+      switchView(targetView);
+    }
+
+    async function loadPenyataTransaksi(category = currentPenyataCategory) {
       try {
-        const [dataResp, budgetResp] = await Promise.all([
+        currentPenyataCategory = category;
+        const aktivitiCode = categoryAktiviti[category] || '';
+        const month = getSelectedMonth('monthSelectPenyata');
+        const titleMap = {
+          perbekalan: 'Penyata Transaksi - Buku VOT 210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA',
+          pembangunan: 'Penyata Transaksi - Buku VOT 210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR'
+        };
+        const titleEl = document.getElementById('penyataTitle');
+        const subtitleEl = document.getElementById('penyataSubtitle');
+        if (titleEl) titleEl.textContent = titleMap[category] || 'Penyata Transaksi - Buku VOT';
+        if (subtitleEl) subtitleEl.textContent = 'Paparan transaksi mengikut kod Kepala VOT yang dipilih.';
+
+        const [dataResp, budgetResp, kvResp] = await Promise.all([
           fetch('/api/data?all=true', { credentials: 'same-origin' }),
-          fetch('/api/balance/' + category, { credentials: 'same-origin' })
+          fetch('/api/balance/' + category, { credentials: 'same-origin' }),
+          fetch('/api/kepala-vot?aktiviti=' + encodeURIComponent(aktivitiCode), { credentials: 'same-origin' })
         ]);
-        const result = await dataResp.json();
+        const dataResult = await dataResp.json();
         const balResult = await budgetResp.json();
-        const peruntukan = balResult.success ? parseFloat(balResult.peruntukan) || 0 : 0;
+        const kvResult = await kvResp.json();
+        if (!dataResult.success) return;
 
-        document.getElementById('apiDebug').textContent = '';
+        const kvList = kvResult.data || [];
 
-        if (result.success && Array.isArray(result.data)) {
-          // Get ALL records for this category sorted by created_at ASC (for running total)
-          const allCatData = result.data
-            .filter(item => item.category && item.category.toString().toLowerCase() === category.toLowerCase())
-            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        const kvMap = {};
+        const kvBudgetMap = {};
+        kvList.forEach(kv => {
+          const key = String(kv.kod || '').trim();
+          kvMap[key] = kv.keterangan || '-';
+          kvBudgetMap[key] = parseFloat(kv.peruntukan) || 0;
+        });
 
-          // Compute running jumlah_bayaran and baki per row
-          let runningTotal = 0;
-          allCatData.forEach(item => {
-            runningTotal += parseFloat(item.bayaran) || 0;
-            item._jumlah = runningTotal;
-            item._baki = peruntukan - runningTotal;
+        const selectedKod = String(currentPenyataKod || '').trim();
+        if (titleEl && selectedKod) {
+          const selectedKet = kvMap[selectedKod] || '-';
+          if (subtitleEl) subtitleEl.textContent = 'Kod dipilih: ' + selectedKod + ' - ' + selectedKet;
+        }
+
+        const categoryPeruntukan = balResult.success ? (parseFloat(balResult.peruntukan) || 0) : 0;
+        const allCatData = (dataResult.data || [])
+          .filter(item => (item.aktiviti || '').startsWith(aktivitiCode))
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+        // If a specific Kepala VOT is selected, use that kod's own allocation.
+        const peruntukan = selectedKod ? (kvBudgetMap[selectedKod] || 0) : categoryPeruntukan;
+
+        let scopedData = allCatData;
+        if (selectedKod) {
+          scopedData = scopedData.filter(item => String(item.kepala_vot || '').trim() === selectedKod);
+        }
+
+        let runningTotal = 0;
+        scopedData.forEach(item => {
+          runningTotal += parseFloat(item.bayaran) || 0;
+          item._jumlah = runningTotal;
+          item._baki = peruntukan - runningTotal;
+        });
+
+        let filteredData = scopedData;
+        if (month) filteredData = filterDataByMonth(filteredData, month);
+
+        const tbody = document.getElementById('penyataTransaksiBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (filteredData.length > 0) {
+          filteredData.forEach(item => {
+            const row = document.createElement('tr');
+            const bakiColor = item._baki < 0 ? 'color:#e74c3c;font-weight:700;' : '';
+            const rujukanPerkara = [item.rujukan, item.perkara].filter(Boolean).join('<br><small style="color:#888;">')
+              + (item.rujukan && item.perkara ? '</small>' : '');
+            row.innerHTML = `
+              <td style="white-space:nowrap;">${item.tarikh || '-'}</td>
+              <td>${item.dibayar_kepada || '-'}</td>
+              <td>${rujukanPerkara || '-'}</td>
+              <td style="text-align:right;">${fmtRM(item.bayaran)}</td>
+              <td style="text-align:right;">${fmtRM(item._jumlah)}</td>
+              <td style="text-align:right;${bakiColor}">${fmtRM(item._baki)}</td>
+            `;
+            tbody.appendChild(row);
           });
 
-          const monthSelectId = `monthSelect${category.charAt(0).toUpperCase() + category.slice(1)}`;
-          const month = getSelectedMonth(monthSelectId);
-          const kvSelectId = `kepalaVotSelect${category.charAt(0).toUpperCase() + category.slice(1)}`;
-          const kvSelect = document.getElementById(kvSelectId);
-          const selectedKV = kvSelect ? kvSelect.value : '';
-
-          // Populate KV filter options if not yet loaded (filtered by category)
-          if (kvSelect && kvSelect.options.length <= 1) {
-            try {
-              const kvResp = await fetch('/api/kepala-vot?category=' + encodeURIComponent(category), { credentials: 'same-origin' });
-              const kvResult = await kvResp.json();
-              if (kvResult.success) {
-                kvResult.data.forEach(kv => {
-                  const opt = document.createElement('option');
-                  opt.value = kv.kod;
-                  opt.textContent = kv.kod + (kv.keterangan ? ' - ' + kv.keterangan : '');
-                  kvSelect.appendChild(opt);
-                });
-              }
-            } catch(e) {}
-          }
-
-          let filteredData = allCatData;
-          if (month) {
-            filteredData = filterDataByMonth(filteredData, month);
-          }
-          if (selectedKV) {
-            filteredData = filteredData.filter(item => (item.kepala_vot || '') === selectedKV);
-          }
-
-          const bodyId = `buku${category.charAt(0).toUpperCase() + category.slice(1)}Body`;
-          const tbody = document.getElementById(bodyId);
-          tbody.innerHTML = '';
-
-          if (filteredData.length > 0) {
-            filteredData.forEach(item => {
-              const row = document.createElement('tr');
-              const bakiColor = item._baki < 0 ? 'color:#e74c3c;font-weight:700;' : '';
-              const rujukanPerkara = [item.rujukan, item.perkara].filter(Boolean).join('<br><small style="color:#888;">')
-                + (item.rujukan && item.perkara ? '</small>' : '');
-              row.innerHTML = `
-                <td style="white-space:nowrap;">${item.tarikh || '-'}</td>
-                <td>${item.dibayar_kepada || '-'}</td>
-                <td>${rujukanPerkara || '-'}</td>
-                <td style="white-space:nowrap;">${item.kepala_vot || '-'}</td>
-                <td style="text-align:right;">${fmtRM(item.bayaran)}</td>
-                <td style="text-align:right;">${fmtRM(item._jumlah)}</td>
-                <td style="text-align:right;${bakiColor}">${fmtRM(item._baki)}</td>
-              `;
-              tbody.appendChild(row);
-            });
-            // Summary row
-            const summaryRow = document.createElement('tr');
-            summaryRow.style.cssText = 'background:#f0f4ff;font-weight:700;';
-            const lastItem = filteredData[filteredData.length - 1];
-            summaryRow.innerHTML = `
-              <td colspan="4" style="text-align:right;color:#667eea;">Peruntukan: ${fmtRM(peruntukan)}</td>
-              <td style="text-align:right;">${fmtRM(filteredData.reduce((s,i) => s + (parseFloat(i.bayaran)||0), 0))}</td>
-              <td style="text-align:right;">${fmtRM(lastItem._jumlah)}</td>
-              <td style="text-align:right;${lastItem._baki < 0 ? 'color:#e74c3c;' : 'color:#27ae60;'}">${fmtRM(lastItem._baki)}</td>
-            `;
-            tbody.appendChild(summaryRow);
-          } else {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Tiada data dijumpai</td></tr>';
-          }
+          const summaryRow = document.createElement('tr');
+          summaryRow.style.cssText = 'background:#f0f4ff;font-weight:700;';
+          const lastItem = filteredData[filteredData.length - 1];
+          summaryRow.innerHTML = `
+            <td colspan="3" style="text-align:right;color:#667eea;">Peruntukan: ${fmtRM(peruntukan)}</td>
+            <td style="text-align:right;">${fmtRM(filteredData.reduce((s,i) => s + (parseFloat(i.bayaran)||0), 0))}</td>
+            <td style="text-align:right;">${fmtRM(lastItem._jumlah)}</td>
+            <td style="text-align:right;${lastItem._baki < 0 ? 'color:#e74c3c;' : 'color:#27ae60;'}">${fmtRM(lastItem._baki)}</td>
+          `;
+          tbody.appendChild(summaryRow);
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Tiada data dijumpai</td></tr>';
         }
       } catch (error) {
-        console.error('Error loading Buku Vot:', error);
+        console.error('Error loading Penyata Transaksi:', error);
       }
     }
 
     // Load statistics data
     async function loadStatistics() {
       try {
-        const response = await fetch('/api/data?all=true', { credentials: 'same-origin' });
-        const result = await response.json();
+        const [dataResp, kvResp] = await Promise.all([
+          fetch('/api/data?all=true', { credentials: 'same-origin' }),
+          fetch('/api/kepala-vot', { credentials: 'same-origin' })
+        ]);
 
-        if (!response.ok) {
-          document.getElementById('apiDebug').textContent = 'API /api/data error: ' + (result.error || response.status);
+        const result = await dataResp.json();
+        const kvResult = await kvResp.json();
+
+        const getProgramCode = (item) => {
+          const aktiviti = String(item?.aktiviti || '').trim();
+          if (aktiviti.startsWith('210100')) return '210100';
+          if (aktiviti.startsWith('210200')) return '210200';
+
+          const cat = String(item?.category || '').toLowerCase().trim();
+          if (cat === 'perbekalan') return '210100';
+          if (cat === 'pembangunan') return '210200';
+          return '';
+        };
+
+        if (!dataResp.ok) {
+          document.getElementById('apiDebug').textContent = 'API /api/data error: ' + (result.error || dataResp.status);
         } else {
           document.getElementById('apiDebug').textContent = '';
         }
@@ -1224,6 +1111,7 @@
         if (result.success && Array.isArray(result.data)) {
           const month = getSelectedMonth('monthSelectStats');
           let data = result.data;
+          const kvList = (kvResult && kvResult.success && Array.isArray(kvResult.data)) ? kvResult.data : [];
           
           if (month) {
             data = filterDataByMonth(data, month);
@@ -1246,63 +1134,66 @@
           document.getElementById('totalJumlahBayaran').textContent = fmtRM(totalJumlahBayaran);
           document.getElementById('totalBaki').textContent = fmtRM(totalBaki);
 
-          // Category-specific statistics
-          const categories = ['perbekalan', 'pembangunan', 'gaji', 'operasi', 'penyelenggaraan', 'utiliti'];
+          // Buku VOT statistics (allocation from Kepala VOT + spending from transactions)
+          const categories = ['210100', '210200'];
           const categoryStatsContainer = document.getElementById('categoryStats');
           categoryStatsContainer.innerHTML = '';
 
           categories.forEach(category => {
-            const categoryData = data.filter(item => item.category && item.category.toString().toLowerCase() === category.toString().toLowerCase());
-            if (categoryData.length > 0) {
-              let catBayaran = 0;
-              let catJumlahBayaran = 0;
-              let catBaki = 0;
+            const categoryData = data.filter(item => getProgramCode(item) === category);
+            const kvByCategory = kvList.filter(kv => String(kv.aktiviti || '').startsWith(category));
 
-              categoryData.forEach(item => {
-                catBayaran += parseFloat(item.bayaran) || 0;
-                catJumlahBayaran += parseFloat(item.jumlah_bayaran) || 0;
-                catBaki += parseFloat(item.baki) || 0;
-              });
+            let catBayaran = 0;
+            let catJumlahBayaran = 0;
+            categoryData.forEach(item => {
+              catBayaran += parseFloat(item.bayaran) || 0;
+              catJumlahBayaran += parseFloat(item.jumlah_bayaran) || 0;
+            });
 
-              const categoryCard = document.createElement('div');
-              categoryCard.className = 'stat-card category-stat';
-              const catColors = {
-                perbekalan: 'linear-gradient(135deg,#667eea,#764ba2)',
-                pembangunan: 'linear-gradient(135deg,#11998e,#38ef7d)',
-                gaji: 'linear-gradient(135deg,#f7971e,#ffd200)',
-                operasi: 'linear-gradient(135deg,#ee0979,#ff6a00)',
-                penyelenggaraan: 'linear-gradient(135deg,#4facfe,#00f2fe)',
-                utiliti: 'linear-gradient(135deg,#43e97b,#38f9d7)',
-              };
-              const catIcons = {
-                perbekalan: '📦', pembangunan: '🏗️', gaji: '💰',
-                operasi: '⚙️', penyelenggaraan: '🔧', utiliti: '💡',
-              };
-              const gradient = catColors[category.toLowerCase()] || 'linear-gradient(135deg,#667eea,#764ba2)';
-              const icon = catIcons[category.toLowerCase()] || '📊';
-              categoryCard.innerHTML = `
-                <h3 style="background:${gradient};">${icon} ${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
-                <div class="stat-body">
-                <div class="stat-item">
-                  <span class="stat-label">📋 Entries</span>
-                  <span class="stat-value">${categoryData.length}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">💳 Total Bayaran</span>
-                  <span class="stat-value">${fmtRM(catBayaran)}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">🧾 Jumlah Bayaran</span>
-                  <span class="stat-value">${fmtRM(catJumlahBayaran)}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">💼 Total Baki</span>
-                  <span class="stat-value">${fmtRM(catBaki)}</span>
-                </div>
-                </div>
-              `;
-              categoryStatsContainer.appendChild(categoryCard);
-            }
+            const catPeruntukan = kvByCategory.reduce((sum, kv) => sum + (parseFloat(kv.peruntukan) || 0), 0);
+            const catBakiSemasa = catPeruntukan - catBayaran;
+
+            const categoryCard = document.createElement('div');
+            categoryCard.className = 'stat-card category-stat';
+            const catColors = {
+              '210100': 'linear-gradient(135deg,#667eea,#764ba2)',
+              '210200': 'linear-gradient(135deg,#11998e,#38ef7d)'
+            };
+            const catIcons = {
+              '210100': '📚',
+              '210200': '🎯'
+            };
+            const catLabel = category === '210100'
+              ? '210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA'
+              : '210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR';
+            const gradient = catColors[category] || 'linear-gradient(135deg,#667eea,#764ba2)';
+            const icon = catIcons[category] || '📊';
+            categoryCard.innerHTML = `
+              <h3 style="background:${gradient};">${icon} ${catLabel}</h3>
+              <div class="stat-body">
+              <div class="stat-item">
+                <span class="stat-label">📋 Entries</span>
+                <span class="stat-value">${categoryData.length}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">🧮 Peruntukan</span>
+                <span class="stat-value">${fmtRM(catPeruntukan)}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">💳 Amaun Bayaran</span>
+                <span class="stat-value">${fmtRM(catBayaran)}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">🧾 Jumlah Bayaran</span>
+                <span class="stat-value">${fmtRM(catJumlahBayaran)}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">💼 Baki Semasa</span>
+                <span class="stat-value">${fmtRM(catBakiSemasa)}</span>
+              </div>
+              </div>
+            `;
+            categoryStatsContainer.appendChild(categoryCard);
           });
         }
       } catch (error) {
@@ -1314,28 +1205,34 @@
     const catLabel = { perbekalan:'Perbekalan', pembangunan:'Pembangunan', gaji:'Gaji', operasi:'Operasi', penyelenggaraan:'Penyelenggaraan', utiliti:'Utiliti', umum:'Umum' };
     const catColor = { perbekalan:'#3498db', pembangunan:'#e67e22', gaji:'#2ecc71', operasi:'#9b59b6', penyelenggaraan:'#e74c3c', utiliti:'#1abc9c', umum:'#95a5a6' };
 
+    function mapAktivitiToCategory(aktiviti) {
+      if ((aktiviti || '').startsWith('210200')) return 'pembangunan';
+      return 'perbekalan';
+    }
+
     async function loadKepalaVotAdmin() {
       const tbody = document.getElementById('kepalaVotAdminBody');
-      const filterEl = document.getElementById('kvFilterCategory');
-      const filterCat = filterEl ? filterEl.value : '';
+      const filterAktiviti = document.getElementById('kvFilterAktiviti').value;
       try {
-        const resp = await fetch('/api/kepala-vot', { credentials: 'same-origin' });
+        const url = filterAktiviti
+          ? '/api/kepala-vot?aktiviti=' + encodeURIComponent(filterAktiviti)
+          : '/api/kepala-vot';
+        const resp = await fetch(url, { credentials: 'same-origin' });
         const result = await resp.json();
+        
         if (!result.success) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Ralat memuatkan data.</td></tr>'; return; }
-        const all = result.data;
-        const filtered = filterCat ? all.filter(kv => (kv.category||'').toLowerCase() === filterCat) : all;
+        const filtered = result.data || [];
         const badge = document.getElementById('kvCountBadge');
-        if (badge) badge.textContent = filtered.length + ' rekod' + (filterCat ? ' dalam kategori ini' : ' keseluruhan');
+        const filterLabel = filterAktiviti ? filterAktiviti : 'semua aktiviti';
+        if (badge) badge.textContent = filtered.length + ' rekod (' + filterLabel + ')';
         if (!filtered.length) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Tiada Kepala VOT' + (filterCat ? ' untuk kategori ini.' : ' didaftarkan.') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Tiada Kepala VOT didaftarkan untuk aktiviti ini.</td></tr>';
           return;
         }
         tbody.innerHTML = filtered.map((kv, i) => {
-          const cat = (kv.category || 'umum').toLowerCase();
-          const col = catColor[cat] || '#95a5a6';
-          const lbl = catLabel[cat] || cat;
+          const allocationValue = parseFloat(kv.peruntukan) || 0;
           return '<tr><td>' + (i+1) + '</td><td>' + (kv.aktiviti || '-') + '</td><td><strong>' + kv.kod + '</strong></td><td>' + (kv.keterangan||'-') + '</td>'
-            + '<td><span style="background:' + col + ';color:#fff;padding:2px 8px;border-radius:10px;font-size:0.78rem;font-weight:600;">' + lbl + '</span></td>'
+            + '<td><div style="display:flex;align-items:center;gap:6px;min-width:170px;"><input type="number" id="kvBudget-' + kv.id + '" value="' + allocationValue.toFixed(2) + '" step="0.01" min="0" style="width:95px;padding:5px 7px;border:1px solid #d8dcf0;border-radius:5px;font-size:0.82rem;"><button onclick="updateKepalaVotBudget(' + kv.id + ')" style="padding:5px 10px;background:#667eea;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.78rem;">Simpan</button></div></td>'
             + '<td><button onclick="deleteKepalaVot(' + kv.id + ')" style="padding:4px 12px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">Padam</button></td></tr>';
         }).join('');
       } catch(e) {
@@ -1347,14 +1244,15 @@
       const aktiviti = document.getElementById('kvAktivitiInput').value.trim();
       const kod = document.getElementById('kvKodInput').value.trim();
       const keterangan = document.getElementById('kvKeteranganInput').value.trim();
-      const category = document.getElementById('kvCategoryInput').value;
+      const peruntukan = document.getElementById('kvPeruntukanInput').value;
+      const category = mapAktivitiToCategory(aktiviti);
       const msg = document.getElementById('kvMsg');
       if (!kod) { msg.style.color = '#e74c3c'; msg.textContent = 'Sila masukkan Kod.'; return; }
       try {
         const resp = await fetch('/api/kepala-vot', {
           method: 'POST', credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ aktiviti, kod, keterangan, category })
+          body: JSON.stringify({ aktiviti, kod, keterangan, peruntukan, category })
         });
         const result = await resp.json();
         if (result.success) {
@@ -1363,9 +1261,11 @@
           document.getElementById('kvAktivitiInput').value = '';
           document.getElementById('kvKodInput').value = '';
           document.getElementById('kvKeteranganInput').value = '';
+          document.getElementById('kvPeruntukanInput').value = '';
           // Reset filter dropdowns so they reload fresh on next Buku Vot open
           document.querySelectorAll('[id^="kepalaVotSelect"]').forEach(s => { while (s.options.length > 1) s.remove(1); });
           loadKepalaVotAdmin();
+          loadKepalaVotCards(mapAktivitiToCategory(aktiviti) === 'pembangunan' ? 'pembangunan' : 'perbekalan');
         } else {
           msg.style.color = '#e74c3c';
           msg.textContent = result.error || 'Gagal menyimpan.';
@@ -1378,19 +1278,134 @@
     async function deleteKepalaVot(id) {
       if (!confirm('Padamkan Kepala VOT ini?')) return;
       try {
+        // Find which aktiviti this KV belongs to before deleting
+        const rows = document.querySelectorAll('#kepalaVotAdminBody tr');
+        let kvCategory = 'perbekalan';
+        rows.forEach(row => {
+          const deleteBtn = row.querySelector('button[onclick*="deleteKepalaVot(' + id + ')"]');
+          if (deleteBtn) {
+            const aktiCell = row.cells[1] ? row.cells[1].textContent : '';
+            kvCategory = aktiCell.startsWith('210200') ? 'pembangunan' : 'perbekalan';
+          }
+        });
         const resp = await fetch('/api/kepala-vot/' + id, { method: 'DELETE', credentials: 'same-origin' });
         const result = await resp.json();
-        if (result.success) loadKepalaVotAdmin();
+        if (result.success) {
+          loadKepalaVotAdmin();
+          loadKepalaVotCards('perbekalan');
+          loadKepalaVotCards('pembangunan');
+        }
         else alert(result.error || 'Gagal memadam.');
       } catch(e) { alert('Ralat sambungan.'); }
+    }
+
+    async function updateKepalaVotBudget(id) {
+      const input = document.getElementById('kvBudget-' + id);
+      const amount = input ? input.value : 0;
+      try {
+        const resp = await fetch('/api/kepala-vot/' + id, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ peruntukan: amount })
+        });
+        const result = await resp.json();
+        if (!result.success) throw new Error(result.error || 'Gagal mengemas kini peruntukan.');
+        const msg = document.getElementById('kvMsg');
+        msg.style.color = '#27ae60';
+        msg.textContent = 'Peruntukan Kepala VOT berjaya dikemaskini.';
+        loadKepalaVotCards('perbekalan');
+        loadKepalaVotCards('pembangunan');
+      } catch (e) {
+        alert(e.message || 'Ralat sambungan.');
+      }
+    }
+
+    async function openKepalaVotLedger(category, kod) {
+      currentPenyataCategory = category;
+      currentPenyataKod = String(kod || '').trim();
+      switchView('penyata-transaksi');
+    }
+
+    async function loadKepalaVotCards(category) {
+      const aktivitiCode = categoryAktiviti[category];
+      if (!aktivitiCode) return;
+      const containerMap = { perbekalan: 'bukuPerbekalanCards', pembangunan: 'bukuPembangunanCards' };
+      const container = document.getElementById(containerMap[category]);
+      if (!container) return;
+
+      try {
+        const kvUrl = '/api/kepala-vot?aktiviti=' + encodeURIComponent(aktivitiCode);
+        const [kvResp, dataResp] = await Promise.all([
+          fetch(kvUrl, { credentials: 'same-origin' }),
+          fetch('/api/data?all=true', { credentials: 'same-origin' })
+        ]);
+        const kvResult = await kvResp.json();
+        const dataResult = await dataResp.json();
+
+        if (!kvResult.success || !dataResult.success) {
+          container.innerHTML = '<div class="kv-card-empty">Ralat memuatkan ringkasan Kepala VOT.</div>';
+          return;
+        }
+
+        const payments = (dataResult.data || []).filter(item => (item.aktiviti || '').startsWith(aktivitiCode));
+        const heads = kvResult.data || [];
+
+        if (!heads.length) {
+          container.innerHTML = '<div class="kv-card-empty">Tiada Kepala VOT didaftarkan untuk program ini.</div>';
+          return;
+        }
+
+        container.innerHTML = heads.map((kv) => {
+          const allocation = parseFloat(kv.peruntukan) || 0;
+          const used = payments
+            .filter(item => (item.kepala_vot || '') === kv.kod)
+            .reduce((sum, item) => sum + (parseFloat(item.bayaran) || 0), 0);
+          const balance = allocation - used;
+          const rawPercent = allocation > 0 ? (used / allocation) * 100 : (used > 0 ? 100 : 0);
+          const percent = Math.max(0, rawPercent);
+          const width = Math.min(percent, 100);
+          const stateClass = balance < 0 ? 'over' : (width >= 75 ? 'warn' : 'good');
+
+          return `
+            <article class="kv-card ${stateClass}">
+              <div class="kv-card-top">
+                <div>
+                  <div class="kv-card-code">${kv.kod || '-'}</div>
+                  <div class="kv-card-desc">${kv.keterangan || 'Tiada keterangan'}</div>
+                </div>
+                <div class="kv-card-tools">
+                  <button class="kv-ledger-btn" type="button" onclick="openKepalaVotLedger('${category}', '${kv.kod || ''}')" title="Buka penyata transaksi">📘</button>
+                  <div class="kv-card-percent">${percent.toFixed(1)}%</div>
+                </div>
+              </div>
+              <div class="kv-card-meta">${kv.aktiviti || 'Tiada aktiviti ditetapkan'}</div>
+              <div class="kv-card-stats">
+                <div><span>Jumlah Peruntukan</span><strong>${fmtRM(allocation)}</strong></div>
+                <div><span>Baki Semasa</span><strong class="${balance < 0 ? 'text-danger' : 'text-success'}">${fmtRM(balance)}</strong></div>
+              </div>
+              <div class="kv-progress">
+                <div class="kv-progress-bar" style="width:${width}%;"></div>
+              </div>
+              <div class="kv-progress-note">Digunakan ${fmtRM(used)} daripada ${fmtRM(allocation)}</div>
+            </article>
+          `;
+        }).join('');
+      } catch (e) {
+        container.innerHTML = '<div class="kv-card-empty">Ralat sambungan semasa memuatkan ringkasan.</div>';
+      }
     }
     // ─────────────────────────────────────────────────────────
 
     // Load data
     async function loadData() {
       try {
-        const response = await fetch('/api/data?all=true', { credentials: 'same-origin' });
+        const [response, kvResponse] = await Promise.all([
+          fetch('/api/data?all=true', { credentials: 'same-origin' }),
+          fetch('/api/kepala-vot', { credentials: 'same-origin' })
+        ]);
         const result = await response.json();
+        const kvResult = await kvResponse.json();
 
         if (!response.ok) {
           document.getElementById('apiDebug').textContent = 'API /api/data error: ' + (result.error || response.status);
@@ -1399,6 +1414,21 @@
         }
 
         if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+          const kepalaVotMap = {};
+          (kvResult.success ? (kvResult.data || []) : []).forEach(kv => {
+            const aktCode = String(kv.aktiviti || '').trim().substring(0, 6);
+            const key = aktCode + '|' + String(kv.kod || '').trim();
+            kepalaVotMap[key] = kv.keterangan || '-';
+          });
+
+          const getAktivitiCode = (aktivitiText) => String(aktivitiText || '').trim().substring(0, 6);
+          const getBukuVotLabel = (aktivitiText) => {
+            const code = getAktivitiCode(aktivitiText);
+            if (code === '210100') return '210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA';
+            if (code === '210200') return '210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR';
+            return aktivitiText || '-';
+          };
+
           const month = getSelectedMonth('monthSelectData');
           const category = document.getElementById('categorySelectData').value;
           let data = result.data;
@@ -1419,14 +1449,19 @@
           data.forEach(item => {
             const row = document.createElement('tr');
             row.dataset.id = item.id;
+            const aktivitiCode = getAktivitiCode(item.aktiviti);
+            const kod = String(item.kepala_vot || '-').trim();
+            const kvKey = aktivitiCode + '|' + kod;
+            const kvKeterangan = kepalaVotMap[kvKey] || '-';
+            const bukuVotHead = getBukuVotLabel(item.aktiviti);
+            const bukuVotKepala = `${bukuVotHead} : ${kod} - ${kvKeterangan}`;
             row.innerHTML = `
               <td style="text-align:center;"><input type="checkbox" class="row-checkbox" value="${item.id}" onchange="updateBulkBar()" style="width:15px;height:15px;cursor:pointer;"></td>
               <td>${item.tarikh || '-'}</td>
               <td>${item.rujukan || '-'}</td>
-              <td>${item.kepala_vot || '-'}</td>
+              <td>${bukuVotKepala}</td>
               <td>${item.dibayar_kepada || '-'}</td>
               <td>${item.perkara || '-'}</td>
-              <td>${item.category || '-'}</td>
               <td>${item.liabiliti || '-'}</td>
               <td>${fmtRM(item.bayaran)}</td>
               <td>${fmtRM(item.jumlah_bayaran)}</td>
@@ -1739,10 +1774,13 @@
 
     // Export Buku Vot by category
     function exportBukuVot(category, format) {
+      const isPenyataView = document.getElementById('penyataTransaksiView')?.style.display === 'block';
       const cap    = category.charAt(0).toUpperCase() + category.slice(1);
-      const month  = getSelectedMonth('monthSelect' + cap);
+      const month  = isPenyataView ? getSelectedMonth('monthSelectPenyata') : getSelectedMonth('monthSelect' + cap);
       const params = new URLSearchParams({ category });
       if (month) params.set('month', month);
+      if (isPenyataView && currentPenyataKod) params.set('kepala_vot', currentPenyataKod);
+      if (isPenyataView && currentPenyataKodDesc) params.set('kepala_vot_desc', currentPenyataKodDesc);
       window.location.href = '/api/penyata/' + format + '?' + params.toString();
     }
 
@@ -2279,11 +2317,11 @@
       });
     }
 
-    // Register bill - redirect to data entry with category
-    function registerBill(category) {
-      // Store the selected bill category in sessionStorage
-      sessionStorage.setItem('billCategory', category);
-      // Redirect to data entry page
+    // Register bill - redirect directly to data entry page
+    function registerBill() {
+      if (!sessionStorage.getItem('billCategory')) {
+        sessionStorage.setItem('billCategory', 'perbekalan');
+      }
       window.location.href = '/data-entry';
     }
   </script>
