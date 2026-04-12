@@ -541,7 +541,7 @@
           </div>
 
           <div class="table-wrapper">
-          <table class="data-table" id="dataTable">
+          <table class="data-table compact-data-table" id="dataTable">
             <thead>
               <tr>
                 <th style="width:36px;text-align:center;">
@@ -1808,6 +1808,11 @@
             row.dataset.id = item.id;
             const isSelectable = String(item.transaction_type || 'bill') === 'bill' && String(item.voucher_status || 'active') === 'active';
             const bukuVotKepala = buildBukuVotKepalaLabel(item, kepalaVotMap);
+            const rujukanText = String(item.rujukan || '-');
+            const rujukanCompact = rujukanText.length > 22 ? (rujukanText.substring(0, 22) + '...') : rujukanText;
+            const bukuVotCompact = bukuVotKepala.length > 44 ? (bukuVotKepala.substring(0, 44) + '...') : bukuVotKepala;
+            const perkaraText = String(item.perkara || '-');
+            const perkaraCompact = perkaraText.length > 40 ? (perkaraText.substring(0, 40) + '...') : perkaraText;
             if (!matchesSearch(item, searchTerm, bukuVotKepala)) return;
             if (String(item.transaction_type || 'bill') === 'voucher_cancel') {
               row.classList.add('voucher-cancel-row');
@@ -1817,10 +1822,10 @@
             row.innerHTML = `
               <td style="text-align:center;">${isSelectable ? `<input type="checkbox" class="row-checkbox" value="${item.id}" onchange="updateBulkBar()" style="width:15px;height:15px;cursor:pointer;">` : '<span style="color:#b7bfd3;">-</span>'}</td>
               <td>${item.tarikh || '-'}</td>
-              <td>${item.rujukan || '-'}</td>
-              <td>${bukuVotKepala}</td>
+              <td title="${rujukanText.replace(/"/g, '&quot;')}"><span class="truncate-cell">${rujukanCompact}</span></td>
+              <td title="${bukuVotKepala.replace(/"/g, '&quot;')}"><span class="truncate-cell">${bukuVotCompact}</span></td>
               <td>${item.dibayar_kepada || '-'}</td>
-              <td>${item.perkara || '-'}</td>
+              <td title="${perkaraText.replace(/"/g, '&quot;')}"><span class="truncate-cell">${perkaraCompact}</span></td>
               <td>${item.liabiliti || '-'}</td>
               <td>${fmtRM(item.bayaran)}</td>
               <td>${fmtRM(item.jumlah_bayaran)}</td>

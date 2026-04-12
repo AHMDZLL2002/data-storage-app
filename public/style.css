@@ -881,6 +881,115 @@ body > * {
   background: #f0f0f0;
 }
 
+/* Compact mode for View Data table */
+#dataView .compact-data-table {
+  table-layout: fixed;
+  min-width: 1300px;
+}
+
+#dataView .compact-data-table th,
+#dataView .compact-data-table td {
+  padding: 7px 8px;
+  font-size: 0.83rem;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#dataView .compact-data-table th:nth-child(1),
+#dataView .compact-data-table td:nth-child(1) { width: 36px; text-align: center; }
+#dataView .compact-data-table th:nth-child(2),
+#dataView .compact-data-table td:nth-child(2) { width: 92px; }
+#dataView .compact-data-table th:nth-child(3),
+#dataView .compact-data-table td:nth-child(3) { width: 150px; }
+#dataView .compact-data-table th:nth-child(4),
+#dataView .compact-data-table td:nth-child(4) { width: 235px; }
+#dataView .compact-data-table th:nth-child(5),
+#dataView .compact-data-table td:nth-child(5) { width: 150px; }
+#dataView .compact-data-table th:nth-child(6),
+#dataView .compact-data-table td:nth-child(6) { width: 145px; }
+#dataView .compact-data-table th:nth-child(7),
+#dataView .compact-data-table td:nth-child(7) { width: 80px; }
+#dataView .compact-data-table th:nth-child(8),
+#dataView .compact-data-table td:nth-child(8) { width: 112px; text-align: right; }
+#dataView .compact-data-table th:nth-child(9),
+#dataView .compact-data-table td:nth-child(9) { width: 122px; text-align: right; }
+#dataView .compact-data-table th:nth-child(10),
+#dataView .compact-data-table td:nth-child(10) { width: 122px; text-align: right; }
+#dataView .compact-data-table th:nth-child(11),
+#dataView .compact-data-table td:nth-child(11) { width: 100px; }
+#dataView .compact-data-table th:nth-child(12),
+#dataView .compact-data-table td:nth-child(12) { width: 150px; }
+
+#dataView .compact-data-table th:nth-child(11),
+#dataView .compact-data-table td:nth-child(11) {
+  position: sticky;
+  right: 150px;
+  z-index: 4;
+  background: #ffffff;
+}
+
+/* Keep key finance columns visible during horizontal scroll */
+#dataView .compact-data-table th:nth-child(10),
+#dataView .compact-data-table td:nth-child(10) {
+  position: sticky;
+  right: 250px;
+  z-index: 4;
+  background: #ffffff;
+}
+
+#dataView .compact-data-table th:nth-child(9),
+#dataView .compact-data-table td:nth-child(9) {
+  position: sticky;
+  right: 372px;
+  z-index: 4;
+  background: #ffffff;
+}
+
+#dataView .compact-data-table th:nth-child(8),
+#dataView .compact-data-table td:nth-child(8) {
+  position: sticky;
+  right: 494px;
+  z-index: 4;
+  background: #ffffff;
+}
+
+#dataView .compact-data-table thead th:nth-child(8),
+#dataView .compact-data-table thead th:nth-child(9),
+#dataView .compact-data-table thead th:nth-child(10),
+#dataView .compact-data-table thead th:nth-child(11) {
+  background: #667eea;
+  color: #fff;
+  z-index: 6;
+}
+
+#dataView .compact-data-table td:nth-child(8),
+#dataView .compact-data-table td:nth-child(9),
+#dataView .compact-data-table td:nth-child(10),
+#dataView .compact-data-table td:nth-child(11) {
+  box-shadow: -1px 0 0 #e6e9f2;
+}
+
+#dataView .compact-data-table .truncate-cell {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1280px) {
+  #dataView .compact-data-table {
+    min-width: 1180px;
+  }
+
+  #dataView .compact-data-table th,
+  #dataView .compact-data-table td {
+    padding: 6px 7px;
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 1180px) {
   .kv-admin-grid {
     grid-template-columns: 1fr 140px 1fr 180px;
