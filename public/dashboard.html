@@ -190,11 +190,12 @@
               <thead>
                 <tr>
                   <th>Tarikh</th>
-                  <th>Nama / Dibayar Kepada</th>
-                  <th>Rujukan / Perkara</th>
+                  <th>Butiran Transaksi</th>
+                  <th>Dibayar Kepada</th>
+                  <th>Rujukan Transaksi</th>
                   <th>Amaunt Bayaran</th>
                   <th>Jumlah Bayaran</th>
-                  <th>Baki</th>
+                  <th>Baki Semasa</th>
                 </tr>
               </thead>
               <tbody id="penyataTransaksiBody"></tbody>
@@ -1021,7 +1022,7 @@
         const categoryPeruntukan = balResult.success ? (parseFloat(balResult.peruntukan) || 0) : 0;
         const allCatData = (dataResult.data || [])
           .filter(item => (item.aktiviti || '').startsWith(aktivitiCode))
-          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          .sort((a, b) => new Date(a.tarikh || a.created_at) - new Date(b.tarikh || b.created_at));
 
         // If a specific Kepala VOT is selected, use that kod's own allocation.
         const peruntukan = selectedKod ? (kvBudgetMap[selectedKod] || 0) : categoryPeruntukan;
@@ -1031,15 +1032,16 @@
           scopedData = scopedData.filter(item => String(item.kepala_vot || '').trim() === selectedKod);
         }
 
+        let filteredData = scopedData;
+        if (month) filteredData = filterDataByMonth(filteredData, month);
+
+        // Recalculate running totals from selected allocation for the displayed set.
         let runningTotal = 0;
-        scopedData.forEach(item => {
+        filteredData.forEach(item => {
           runningTotal += parseFloat(item.bayaran) || 0;
           item._jumlah = runningTotal;
           item._baki = peruntukan - runningTotal;
         });
-
-        let filteredData = scopedData;
-        if (month) filteredData = filterDataByMonth(filteredData, month);
 
         const tbody = document.getElementById('penyataTransaksiBody');
         if (!tbody) return;
@@ -1049,12 +1051,11 @@
           filteredData.forEach(item => {
             const row = document.createElement('tr');
             const bakiColor = item._baki < 0 ? 'color:#e74c3c;font-weight:700;' : '';
-            const rujukanPerkara = [item.rujukan, item.perkara].filter(Boolean).join('<br><small style="color:#888;">')
-              + (item.rujukan && item.perkara ? '</small>' : '');
             row.innerHTML = `
               <td style="white-space:nowrap;">${item.tarikh || '-'}</td>
+              <td>${item.perkara || '-'}</td>
               <td>${item.dibayar_kepada || '-'}</td>
-              <td>${rujukanPerkara || '-'}</td>
+              <td>${item.rujukan || '-'}</td>
               <td style="text-align:right;">${fmtRM(item.bayaran)}</td>
               <td style="text-align:right;">${fmtRM(item._jumlah)}</td>
               <td style="text-align:right;${bakiColor}">${fmtRM(item._baki)}</td>
@@ -1066,14 +1067,14 @@
           summaryRow.style.cssText = 'background:#f0f4ff;font-weight:700;';
           const lastItem = filteredData[filteredData.length - 1];
           summaryRow.innerHTML = `
-            <td colspan="3" style="text-align:right;color:#667eea;">Peruntukan: ${fmtRM(peruntukan)}</td>
+            <td colspan="4" style="text-align:right;color:#667eea;">Peruntukan: ${fmtRM(peruntukan)}</td>
             <td style="text-align:right;">${fmtRM(filteredData.reduce((s,i) => s + (parseFloat(i.bayaran)||0), 0))}</td>
             <td style="text-align:right;">${fmtRM(lastItem._jumlah)}</td>
             <td style="text-align:right;${lastItem._baki < 0 ? 'color:#e74c3c;' : 'color:#27ae60;'}">${fmtRM(lastItem._baki)}</td>
           `;
           tbody.appendChild(summaryRow);
         } else {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Tiada data dijumpai</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Tiada data dijumpai</td></tr>';
         }
       } catch (error) {
         console.error('Error loading Penyata Transaksi:', error);

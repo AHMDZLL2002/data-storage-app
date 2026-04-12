@@ -1081,7 +1081,7 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
 
     const selectedKod = kepala_vot ? String(kepala_vot).trim() : '';
     const descFromQuery = kepala_vot_desc ? String(kepala_vot_desc).trim() : '';
-    const runPdf = (resolvedKodDesc = '') => {
+    const runPdf = (resolvedKodDesc = '', resolvedPeruntukan = 0) => {
     try {
       const PDFDocument = require('pdfkit');
       const fsLib = require('fs');
@@ -1114,14 +1114,13 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
 
       // Accountant-style columns
       const cols = [
-        { h:'Bil.',                 w:28,  a:'center', k:null             },
-        { h:'Tarikh',               w:62,  a:'left',   k:'tarikh'         },
-        { h:'Rujukan',              w:66,  a:'left',   k:'rujukan'        },
-        { h:'Butiran Transaksi',    w:216, a:'left',   k:'perkara'        },
-        { h:'Dibayar Kepada',       w:128, a:'left',   k:'dibayar_kepada' },
-        { h:'Amaun (RM)',           w:86,  a:'right',  k:'bayaran'        },
-        { h:'Jumlah Bayaran (RM)',  w:100, a:'right',  k:'jumlah_bayaran' },
-        { h:'Baki Semasa (RM)',     w:100, a:'right',  k:'baki'           },
+        { h:'Tarikh',               w:78,  a:'left',   k:'tarikh'         },
+        { h:'Rujukan Transaksi',    w:104, a:'left',   k:'rujukan'        },
+        { h:'Dibayar Kepada',       w:150, a:'left',   k:'dibayar_kepada' },
+        { h:'Butiran Transaksi',    w:260, a:'left',   k:'perkara'        },
+        { h:'Amaun (RM)',           w:82,  a:'right',  k:'bayaran'        },
+        { h:'Jumlah Bayaran (RM)',  w:84,  a:'right',  k:'jumlah_bayaran' },
+        { h:'Baki Semasa (RM)',     w:84,  a:'right',  k:'baki'           },
       ];
       const ROW_H = 19;
       const HDR_H = 22;
@@ -1204,16 +1203,14 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         return y + HDR_H;
       }
 
-      function drawRow(row, y, rowNum, even) {
+      function drawRow(row, y, even) {
         doc.rect(MX, y, CONTENT_W, ROW_H).fill(even ? LIGHT : '#fff');
         doc.rect(MX, y+ROW_H-0.5, CONTENT_W, 0.5).fill('#dde0f0');
         doc.fillColor('#333').fontSize(7).font('Helvetica');
         let x = MX;
         cols.forEach(c => {
           let val;
-          if (!c.k) {
-            val = String(rowNum);
-          } else if (['bayaran','jumlah_bayaran','baki'].includes(c.k)) {
+          if (['bayaran','jumlah_bayaran','baki'].includes(c.k)) {
             const n = parseFloat(row[c.k]||0);
             val = fmtAmount(n);
             doc.fillColor(c.k==='baki' && n<0 ? '#c0392b' : '#333');
@@ -1235,10 +1232,10 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         let x = MX;
         cols.forEach((c,ci) => {
           let val = '';
-          if (ci===4) val='JUMLAH KESELURUHAN (RM)';
-          if (ci===5) val='RM ' + fmtAmount(tot.bayaran);
-          if (ci===6) val='RM ' + fmtAmount(tot.jumlah_bayaran);
-          if (ci===7) val='RM ' + fmtAmount(tot.baki);
+          if (ci===3) val='JUMLAH KESELURUHAN (RM)';
+          if (ci===4) val='RM ' + fmtAmount(tot.bayaran);
+          if (ci===5) val='RM ' + fmtAmount(tot.jumlah_bayaran);
+          if (ci===6) val='RM ' + fmtAmount(tot.baki);
           doc.text(val, x+3, y+(HDR_H-8)/2+1, { width:c.w-6, align:c.a });
           x += c.w;
         });
@@ -1248,6 +1245,25 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       // ── Render ───────────────────────────────────────────────────
       const TABLE_TOP_GAP = 8;
       const TABLE_BOTTOM_GAP = 8;
+
+      // Recalculate running totals based on peruntukan (allocation) for each kod.
+      const peruntukanForSelectedKod = parseFloat(resolvedPeruntukan) || 0;
+      const runningByKod = {};
+      const sourceData = (data || []).slice().sort((a, b) => new Date(a.tarikh || a.created_at) - new Date(b.tarikh || b.created_at));
+      sourceData.forEach((row) => {
+        const kod = String(row.kepala_vot || '').trim();
+        if (!runningByKod[kod]) {
+          runningByKod[kod] = {
+            jumlah: 0,
+            peruntukan: selectedKod ? peruntukanForSelectedKod : 0
+          };
+        }
+        const n = parseFloat(row.bayaran) || 0;
+        runningByKod[kod].jumlah += n;
+        row.jumlah_bayaran = runningByKod[kod].jumlah;
+        row.baki = runningByKod[kod].peruntukan - runningByKod[kod].jumlah;
+      });
+      data = sourceData;
 
       let yPos = drawHeader(true) + TABLE_TOP_GAP;
       yPos = drawTableHeader(yPos);
@@ -1260,11 +1276,21 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
           yPos = drawHeader(false) + TABLE_TOP_GAP;
           yPos = drawTableHeader(yPos);
         }
-        yPos = drawRow(row, yPos, idx+1, idx%2===0);
+        yPos = drawRow(row, yPos, idx%2===0);
         tot.bayaran += parseFloat(row.bayaran)||0;
         tot.jumlah_bayaran += parseFloat(row.jumlah_bayaran)||0;
       });
-      tot.baki = data.length>0 ? (parseFloat(data[data.length-1].baki)||0) : 0;
+      if (selectedKod) {
+        const selectedRunning = runningByKod[selectedKod] || { jumlah: 0, peruntukan: peruntukanForSelectedKod };
+        tot.baki = selectedRunning.peruntukan - selectedRunning.jumlah;
+      } else {
+        const bakiByKod = Object.values(runningByKod).reduce((sum, item) => {
+          const peruntukan = parseFloat(item.peruntukan) || 0;
+          const jumlah = parseFloat(item.jumlah) || 0;
+          return sum + (peruntukan - jumlah);
+        }, 0);
+        tot.baki = bakiByKod;
+      }
 
       // Place totals box after the last data row with spacing.
       const TOTALS_GAP = 10;
@@ -1301,19 +1327,22 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
     }
     };
 
-    if (selectedKod && !descFromQuery) {
+    if (selectedKod) {
       db.get(
-        'SELECT keterangan FROM kepala_vot_list WHERE kod = ? AND LOWER(category) = LOWER(?) ORDER BY id DESC LIMIT 1',
+        'SELECT keterangan, peruntukan FROM kepala_vot_list WHERE kod = ? AND LOWER(category) = LOWER(?) ORDER BY id DESC LIMIT 1',
         [selectedKod, (category || '')],
         (kvErr, kvRow) => {
-          const resolved = (!kvErr && kvRow && kvRow.keterangan) ? String(kvRow.keterangan).trim() : '';
-          runPdf(resolved);
+          const resolved = (!kvErr && kvRow && kvRow.keterangan)
+            ? String(kvRow.keterangan).trim()
+            : descFromQuery;
+          const resolvedPeruntukan = (!kvErr && kvRow) ? (parseFloat(kvRow.peruntukan) || 0) : 0;
+          runPdf(resolved, resolvedPeruntukan);
         }
       );
       return;
     }
 
-    runPdf(descFromQuery);
+    runPdf(descFromQuery, 0);
   });
 });
 
