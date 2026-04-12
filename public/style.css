@@ -891,6 +891,21 @@ body > * {
   font-size: 12px;
 }
 
+.edit-btn {
+  background: #2f80ed;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+.edit-btn:hover {
+  background: #1f6fd8;
+}
+
 .delete-btn:hover {
   background: #c82333;
 }

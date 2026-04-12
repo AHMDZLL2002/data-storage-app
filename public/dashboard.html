@@ -1404,6 +1404,8 @@
     }
     // ─────────────────────────────────────────────────────────
 
+    const dataEditCache = {};
+
     // Load data
     async function loadData() {
       try {
@@ -1454,6 +1456,7 @@
           tbody.innerHTML = '';
           
           data.forEach(item => {
+            dataEditCache[item.id] = item;
             const row = document.createElement('tr');
             row.dataset.id = item.id;
             const aktivitiCode = getAktivitiCode(item.aktiviti);
@@ -1473,7 +1476,10 @@
               <td>${fmtRM(item.bayaran)}</td>
               <td>${fmtRM(item.jumlah_bayaran)}</td>
               <td>${fmtRM(item.baki)}</td>
-              <td><button class="delete-btn" onclick="deleteData(${item.id})">Delete</button></td>
+              <td style="white-space:nowrap;">
+                <button class="edit-btn" onclick="editData(${item.id})">Edit</button>
+                <button class="delete-btn" onclick="deleteData(${item.id})">Delete</button>
+              </td>
             `;
             tbody.appendChild(row);
           });
@@ -1746,6 +1752,66 @@
         }
       } catch (error) {
         console.error('Error deleting data:', error);
+      }
+    }
+
+    // Edit data
+    async function editData(id) {
+      const item = dataEditCache[id];
+      if (!item) {
+        alert('Data tidak dijumpai. Sila refresh paparan.');
+        return;
+      }
+
+      const tarikh = prompt('Tarikh (YYYY-MM-DD):', item.tarikh || '');
+      if (tarikh === null) return;
+
+      const rujukan = prompt('Rujukan:', item.rujukan || '');
+      if (rujukan === null) return;
+
+      const dibayar = prompt('Dibayar Kepada:', item.dibayar_kepada || '');
+      if (dibayar === null) return;
+
+      const perkara = prompt('Perkara / Butiran:', item.perkara || '');
+      if (perkara === null) return;
+
+      const liabiliti = prompt('Liabiliti:', item.liabiliti || '');
+      if (liabiliti === null) return;
+
+      const bayaranInput = prompt('Bayaran (RM):', String(item.bayaran || 0));
+      if (bayaranInput === null) return;
+      const bayaran = parseFloat(bayaranInput);
+      if (!Number.isFinite(bayaran) || bayaran < 0) {
+        alert('Nilai bayaran tidak sah.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/data/${id}`, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: item.category,
+            aktiviti: item.aktiviti,
+            kepala_vot: item.kepala_vot,
+            tarikh,
+            rujukan,
+            dibayar_kepada: dibayar,
+            perkara,
+            liabiliti,
+            bayaran
+          })
+        });
+        const result = await response.json();
+        if (result.success) {
+          loadData();
+        } else {
+          alert('Ralat kemaskini: ' + (result.error || 'Tidak berjaya'));
+        }
+      } catch (error) {
+        console.error('Error updating data:', error);
+        alert('Ralat sambungan semasa kemaskini data.');
       }
     }
 

@@ -214,6 +214,46 @@ function getMalaysiaTime() {
   return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Kuala_Lumpur' }).replace('T', ' ');
 }
 
+function recalculateCategoryRunningTotals(categoryName, done) {
+  const cat = String(categoryName || '').toLowerCase().trim();
+  if (!cat) return done();
+
+  db.get('SELECT peruntukan FROM category_budgets WHERE category = ?', [cat], (budgetErr, budgetRow) => {
+    if (budgetErr) return done(budgetErr);
+
+    const peruntukan = budgetRow ? (parseFloat(budgetRow.peruntukan) || 0) : 0;
+    db.all(
+      'SELECT id, bayaran FROM data WHERE LOWER(category) = ? ORDER BY datetime(created_at) ASC, id ASC',
+      [cat],
+      (rowsErr, rows) => {
+        if (rowsErr) return done(rowsErr);
+
+        let runningTotal = 0;
+        let index = 0;
+
+        const updateNext = () => {
+          if (index >= rows.length) return done();
+
+          const row = rows[index++];
+          runningTotal += parseFloat(row.bayaran) || 0;
+          const baki = peruntukan - runningTotal;
+
+          db.run(
+            'UPDATE data SET jumlah_bayaran = ?, baki = ? WHERE id = ?',
+            [runningTotal, baki, row.id],
+            (updateErr) => {
+              if (updateErr) return done(updateErr);
+              updateNext();
+            }
+          );
+        };
+
+        updateNext();
+      }
+    );
+  });
+}
+
 // Routes
 
 // Login
@@ -395,6 +435,56 @@ app.post('/api/data', requireAuth, upload.single('image'), (req, res) => {
             });
         });
     });
+});
+
+// Update data entry
+app.put('/api/data/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ error: 'Invalid data ID' });
+
+  const isAdmin = req.session && req.session.username === 'admin';
+
+  db.get('SELECT * FROM data WHERE id = ?', [id], (findErr, existing) => {
+    if (findErr) return res.status(500).json({ error: 'Database error' });
+    if (!existing) return res.status(404).json({ error: 'Data not found' });
+    if (!isAdmin && existing.user_id !== req.session.userId) {
+      return res.status(403).json({ error: 'Unauthorized to edit this entry' });
+    }
+
+    const nextCategory = (req.body.category ?? existing.category ?? 'perbekalan').toString().toLowerCase().trim();
+    const nextTarikh = req.body.tarikh ?? existing.tarikh;
+    const nextRujukan = req.body.rujukan ?? existing.rujukan;
+    const nextDibayar = req.body.dibayar_kepada ?? existing.dibayar_kepada;
+    const nextKepalaVot = req.body.kepala_vot ?? existing.kepala_vot;
+    const nextAktiviti = req.body.aktiviti ?? existing.aktiviti;
+    const nextPerkara = req.body.perkara ?? existing.perkara;
+    const nextLiabiliti = req.body.liabiliti ?? existing.liabiliti;
+    const nextBayaran = parseFloat(req.body.bayaran);
+    const bayaranValue = Number.isFinite(nextBayaran) ? nextBayaran : (parseFloat(existing.bayaran) || 0);
+
+    db.run(
+      `UPDATE data
+       SET category = ?, tarikh = ?, rujukan = ?, dibayar_kepada = ?, kepala_vot = ?, aktiviti = ?, perkara = ?, liabiliti = ?, bayaran = ?
+       WHERE id = ?`,
+      [nextCategory, nextTarikh, nextRujukan, nextDibayar, nextKepalaVot, nextAktiviti, nextPerkara, nextLiabiliti, bayaranValue, id],
+      (updateErr) => {
+        if (updateErr) return res.status(500).json({ error: 'Database error: ' + updateErr.message });
+
+        const oldCategory = String(existing.category || '').toLowerCase().trim();
+        const recalcCats = Array.from(new Set([oldCategory, nextCategory].filter(Boolean)));
+
+        const recalcNext = (idx) => {
+          if (idx >= recalcCats.length) return res.json({ success: true });
+          recalculateCategoryRunningTotals(recalcCats[idx], (recalcErr) => {
+            if (recalcErr) return res.status(500).json({ error: 'Recalculate error: ' + recalcErr.message });
+            recalcNext(idx + 1);
+          });
+        };
+
+        recalcNext(0);
+      }
+    );
+  });
 });
 
 // Delete data entry
@@ -1250,11 +1340,13 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
       const peruntukanForSelectedKod = parseFloat(resolvedPeruntukan) || 0;
       const runningByKod = {};
       const sourceData = (data || []).slice().sort((a, b) => new Date(a.tarikh || a.created_at) - new Date(b.tarikh || b.created_at));
+      const expandedData = [];
       sourceData.forEach((row) => {
         const kod = String(row.kepala_vot || '').trim();
         const kodPeruntukan = selectedKod
           ? peruntukanForSelectedKod
           : (kvMetaByKod[kod]?.peruntukan || 0);
+        const isFirstKodRow = !runningByKod[kod];
         if (!runningByKod[kod]) {
           runningByKod[kod] = {
             jumlah: 0,
@@ -1262,17 +1354,28 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
           };
         }
         const bakiAwal = runningByKod[kod].peruntukan;
+
+        // Opening balance must be shown as its own first row, separate from bill rows.
+        if (isFirstKodRow) {
+          expandedData.push({
+            tarikh: '-',
+            rujukan: '-',
+            dibayar_kepada: '-',
+            butiran_penyata: `BAKI AWAL (KOD ${kod || '-'})`,
+            bayaran: 0,
+            jumlah_bayaran: 0,
+            baki: bakiAwal
+          });
+        }
+
         const n = parseFloat(row.bayaran) || 0;
         runningByKod[kod].jumlah += n;
         row.jumlah_bayaran = runningByKod[kod].jumlah;
         row.baki = runningByKod[kod].peruntukan - runningByKod[kod].jumlah;
-        const perkaraAsal = String(row.perkara || '-').trim();
-        const isFirstKodRow = Math.abs(runningByKod[kod].jumlah - n) < 1e-9;
-        row.butiran_penyata = isFirstKodRow
-          ? `BAKI AWAL: RM ${fmtAmount(bakiAwal)} | ${perkaraAsal}`
-          : perkaraAsal;
+        row.butiran_penyata = String(row.perkara || '-').trim();
+        expandedData.push(row);
       });
-      data = sourceData;
+      data = expandedData;
 
       let yPos = drawHeader(true) + TABLE_TOP_GAP;
       yPos = drawTableHeader(yPos);
@@ -1287,12 +1390,15 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         }
         yPos = drawRow(row, yPos, idx%2===0);
         tot.bayaran += parseFloat(row.bayaran)||0;
-        tot.jumlah_bayaran += parseFloat(row.jumlah_bayaran)||0;
       });
+
       if (selectedKod) {
         const selectedRunning = runningByKod[selectedKod] || { jumlah: 0, peruntukan: peruntukanForSelectedKod };
+        tot.jumlah_bayaran = selectedRunning.jumlah;
         tot.baki = selectedRunning.peruntukan - selectedRunning.jumlah;
       } else {
+        const jumlahByKod = Object.values(runningByKod).reduce((sum, item) => sum + (parseFloat(item.jumlah) || 0), 0);
+        tot.jumlah_bayaran = jumlahByKod;
         const bakiByKod = Object.values(runningByKod).reduce((sum, item) => {
           const peruntukan = parseFloat(item.peruntukan) || 0;
           const jumlah = parseFloat(item.jumlah) || 0;
