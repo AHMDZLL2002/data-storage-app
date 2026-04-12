@@ -214,44 +214,101 @@ function getMalaysiaTime() {
   return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Kuala_Lumpur' }).replace('T', ' ');
 }
 
-function recalculateCategoryRunningTotals(categoryName, done) {
-  const cat = String(categoryName || '').toLowerCase().trim();
-  if (!cat) return done();
+function normalizeCategory(value) {
+  return String(value || 'perbekalan').toLowerCase().trim();
+}
 
-  db.get('SELECT peruntukan FROM category_budgets WHERE category = ?', [cat], (budgetErr, budgetRow) => {
-    if (budgetErr) return done(budgetErr);
+function normalizeAktivitiCode(value) {
+  return String(value || '').trim().substring(0, 6);
+}
 
-    const peruntukan = budgetRow ? (parseFloat(budgetRow.peruntukan) || 0) : 0;
-    db.all(
-      'SELECT id, bayaran FROM data WHERE LOWER(category) = ? ORDER BY datetime(created_at) ASC, id ASC',
-      [cat],
-      (rowsErr, rows) => {
-        if (rowsErr) return done(rowsErr);
+function normalizeKepalaVot(value) {
+  return String(value || '').trim();
+}
 
-        let runningTotal = 0;
-        let index = 0;
+function getScopeKey(aktiviti, kepalaVot) {
+  return `${normalizeAktivitiCode(aktiviti)}|${normalizeKepalaVot(kepalaVot)}`;
+}
 
-        const updateNext = () => {
-          if (index >= rows.length) return done();
+function getVoucherDisplayStatus(row) {
+  const type = String(row?.transaction_type || 'bill').trim();
+  if (type === 'voucher_cancel') return 'cancel-entry';
+  return String(row?.voucher_status || 'active').trim() || 'active';
+}
 
-          const row = rows[index++];
-          runningTotal += parseFloat(row.bayaran) || 0;
-          const baki = peruntukan - runningTotal;
+function recalculateScopeRunningTotals(aktiviti, kepalaVot, done) {
+  const aktivitiCode = normalizeAktivitiCode(aktiviti);
+  const kod = normalizeKepalaVot(kepalaVot);
+  if (!aktivitiCode || !kod) return done();
 
-          db.run(
-            'UPDATE data SET jumlah_bayaran = ?, baki = ? WHERE id = ?',
-            [runningTotal, baki, row.id],
-            (updateErr) => {
-              if (updateErr) return done(updateErr);
-              updateNext();
-            }
-          );
-        };
+  db.get(
+    `SELECT peruntukan
+     FROM kepala_vot_list
+     WHERE SUBSTR(COALESCE(aktiviti, ''), 1, 6) = ? AND TRIM(COALESCE(kod, '')) = ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [aktivitiCode, kod],
+    (budgetErr, budgetRow) => {
+      if (budgetErr) return done(budgetErr);
 
-        updateNext();
-      }
-    );
+      const peruntukan = budgetRow ? (parseFloat(budgetRow.peruntukan) || 0) : 0;
+      db.all(
+        `SELECT id, bayaran
+         FROM data
+         WHERE SUBSTR(COALESCE(aktiviti, ''), 1, 6) = ? AND TRIM(COALESCE(kepala_vot, '')) = ?
+         ORDER BY date(COALESCE(tarikh, created_at)) ASC, datetime(created_at) ASC, id ASC`,
+        [aktivitiCode, kod],
+        (rowsErr, rows) => {
+          if (rowsErr) return done(rowsErr);
+
+          let runningTotal = 0;
+          let index = 0;
+
+          const updateNext = () => {
+            if (index >= rows.length) return done();
+
+            const row = rows[index++];
+            runningTotal += parseFloat(row.bayaran) || 0;
+            const baki = peruntukan - runningTotal;
+
+            db.run(
+              'UPDATE data SET jumlah_bayaran = ?, baki = ? WHERE id = ?',
+              [runningTotal, baki, row.id],
+              (updateErr) => {
+                if (updateErr) return done(updateErr);
+                updateNext();
+              }
+            );
+          };
+
+          updateNext();
+        }
+      );
+    }
+  );
+}
+
+function recalculateMultipleScopes(scopeList, done) {
+  const uniqueScopes = Array.from(new Set(
+    (scopeList || [])
+      .map((scope) => getScopeKey(scope?.aktiviti, scope?.kepala_vot))
+      .filter((key) => key !== '|')
+  )).map((key) => {
+    const [aktiviti, kepala_vot] = key.split('|');
+    return { aktiviti, kepala_vot };
   });
+
+  let index = 0;
+  const next = () => {
+    if (index >= uniqueScopes.length) return done();
+    const scope = uniqueScopes[index++];
+    recalculateScopeRunningTotals(scope.aktiviti, scope.kepala_vot, (err) => {
+      if (err) return done(err);
+      next();
+    });
+  };
+
+  next();
 }
 
 // Routes
@@ -408,32 +465,31 @@ app.post('/api/data', requireAuth, upload.single('image'), (req, res) => {
 
   if (!userId) return res.status(401).json({ error: 'User not authenticated' });
 
-  const categoryNormalized = category ? category.toString().toLowerCase() : 'perbekalan';
+  const categoryNormalized = normalizeCategory(category);
   const bayaranAmount = parseFloat(bayaran) || 0;
 
-  // Compute running jumlah_bayaran and baki from category budget
-  db.get('SELECT COALESCE(SUM(bayaran), 0) as total FROM data WHERE LOWER(category) = ?',
-    [categoryNormalized], (err, row) => {
-      if (err) return res.status(500).json({ error: 'Database error' });
-      const prevTotal = parseFloat(row.total) || 0;
-      const jumlah_bayaran = prevTotal + bayaranAmount;
+  db.run(`INSERT INTO data (user_id, category, tarikh, rujukan, dibayar_kepada, kepala_vot, aktiviti, perkara, liabiliti, bayaran, jumlah_bayaran, baki, transaction_type, voucher_status, image)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'bill', 'active', ?)`,
+    [userId, categoryNormalized, tarikh, rujukan, dibayar_kepada, kepala_vot, aktiviti || '', perkara, liabiliti, bayaranAmount, image],
+    function(insertErr) {
+      if (insertErr) {
+        console.error('Database error inserting data:', insertErr);
+        return res.status(500).json({ error: 'Database error: ' + insertErr.message });
+      }
 
-      db.get('SELECT peruntukan FROM category_budgets WHERE category = ?',
-        [categoryNormalized], (err2, budget) => {
-          const peruntukan = budget ? parseFloat(budget.peruntukan) || 0 : 0;
-          const baki = peruntukan - jumlah_bayaran;
-
-          db.run(`INSERT INTO data (user_id, category, tarikh, rujukan, dibayar_kepada, kepala_vot, aktiviti, perkara, liabiliti, bayaran, jumlah_bayaran, baki, image)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [userId, categoryNormalized, tarikh, rujukan, dibayar_kepada, kepala_vot, aktiviti || '', perkara, liabiliti, bayaranAmount, jumlah_bayaran, baki, image],
-            function(insertErr) {
-              if (insertErr) {
-                console.error('Database error inserting data:', insertErr);
-                return res.status(500).json({ error: 'Database error: ' + insertErr.message });
-              }
-              res.json({ success: true, id: this.lastID, jumlah_bayaran, baki });
-            });
+      const insertedId = this.lastID;
+      recalculateScopeRunningTotals(aktiviti, kepala_vot, (recalcErr) => {
+        if (recalcErr) return res.status(500).json({ error: 'Recalculate error: ' + recalcErr.message });
+        db.get('SELECT jumlah_bayaran, baki FROM data WHERE id = ?', [insertedId], (readErr, insertedRow) => {
+          if (readErr) return res.status(500).json({ error: 'Database error' });
+          res.json({
+            success: true,
+            id: insertedId,
+            jumlah_bayaran: parseFloat(insertedRow?.jumlah_bayaran) || 0,
+            baki: parseFloat(insertedRow?.baki) || 0
+          });
         });
+      });
     });
 });
 
@@ -450,8 +506,14 @@ app.put('/api/data/:id', requireAuth, (req, res) => {
     if (!isAdmin && existing.user_id !== req.session.userId) {
       return res.status(403).json({ error: 'Unauthorized to edit this entry' });
     }
+    if (String(existing.transaction_type || 'bill') !== 'bill') {
+      return res.status(400).json({ error: 'Hanya baucar asal boleh dikemaskini.' });
+    }
+    if (String(existing.voucher_status || 'active') === 'cancelled') {
+      return res.status(400).json({ error: 'Baucar yang telah dibatalkan tidak boleh dikemaskini.' });
+    }
 
-    const nextCategory = (req.body.category ?? existing.category ?? 'perbekalan').toString().toLowerCase().trim();
+    const nextCategory = normalizeCategory(req.body.category ?? existing.category ?? 'perbekalan');
     const nextTarikh = req.body.tarikh ?? existing.tarikh;
     const nextRujukan = req.body.rujukan ?? existing.rujukan;
     const nextDibayar = req.body.dibayar_kepada ?? existing.dibayar_kepada;
@@ -470,34 +532,157 @@ app.put('/api/data/:id', requireAuth, (req, res) => {
       (updateErr) => {
         if (updateErr) return res.status(500).json({ error: 'Database error: ' + updateErr.message });
 
-        const oldCategory = String(existing.category || '').toLowerCase().trim();
-        const recalcCats = Array.from(new Set([oldCategory, nextCategory].filter(Boolean)));
-
-        const recalcNext = (idx) => {
-          if (idx >= recalcCats.length) return res.json({ success: true });
-          recalculateCategoryRunningTotals(recalcCats[idx], (recalcErr) => {
-            if (recalcErr) return res.status(500).json({ error: 'Recalculate error: ' + recalcErr.message });
-            recalcNext(idx + 1);
-          });
-        };
-
-        recalcNext(0);
+        recalculateMultipleScopes([
+          { aktiviti: existing.aktiviti, kepala_vot: existing.kepala_vot },
+          { aktiviti: nextAktiviti, kepala_vot: nextKepalaVot }
+        ], (recalcErr) => {
+          if (recalcErr) return res.status(500).json({ error: 'Recalculate error: ' + recalcErr.message });
+          res.json({ success: true });
+        });
       }
     );
   });
 });
 
+app.get('/api/cancelled-vouchers', requireAuth, (req, res) => {
+  db.all(
+    `SELECT original.*, cancel.id AS cancellation_entry_id, cancel.tarikh AS cancellation_tarikh,
+            cancel.created_at AS cancellation_created_at, cancel.bayaran AS cancellation_amount,
+            cancel.perkara AS cancellation_perkara, cancel.cancellation_reason AS cancellation_reason,
+            u.username AS cancelled_by_username
+     FROM data original
+     LEFT JOIN data cancel ON cancel.parent_data_id = original.id AND cancel.transaction_type = 'voucher_cancel'
+     LEFT JOIN users u ON u.id = cancel.cancelled_by
+     WHERE original.transaction_type = 'bill' AND original.voucher_status = 'cancelled'
+     ORDER BY datetime(cancel.created_at) DESC, cancel.id DESC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json({ success: true, data: rows || [] });
+    }
+  );
+});
+
+app.post('/api/data/:id/cancel-voucher', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ error: 'Invalid voucher ID' });
+
+  const reasonText = String(req.body?.reason || '').trim();
+  const cancelTarikh = String(req.body?.tarikh || '').trim() || new Date().toISOString().split('T')[0];
+  const cancelledAt = getMalaysiaTime();
+
+  db.get('SELECT * FROM data WHERE id = ?', [id], (findErr, existing) => {
+    if (findErr) return res.status(500).json({ error: 'Database error' });
+    if (!existing) return res.status(404).json({ error: 'Baucar tidak dijumpai' });
+    if (String(existing.transaction_type || 'bill') !== 'bill') {
+      return res.status(400).json({ error: 'Hanya baucar asal boleh dibatalkan' });
+    }
+    if (String(existing.voucher_status || 'active') === 'cancelled') {
+      return res.status(400).json({ error: 'Baucar ini telah dibatalkan sebelum ini' });
+    }
+
+    const categoryNormalized = normalizeCategory(existing.category);
+    const amount = parseFloat(existing.bayaran) || 0;
+    const reasonSuffix = reasonText ? ` Sebab: ${reasonText}` : '';
+    const cancelPerkara = `PEMBATALAN BAUCAR: ${existing.perkara || '-'}${reasonSuffix}`;
+    const cancelRujukan = existing.rujukan ? `${existing.rujukan} (BATAL)` : 'BATAL BAUCAR';
+
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+
+      db.run(
+        `UPDATE data
+         SET voucher_status = 'cancelled', cancelled_at = ?, cancelled_by = ?, cancellation_reason = ?
+         WHERE id = ?`,
+        [cancelledAt, req.session.userId, reasonText || null, id],
+        function(updateErr) {
+          if (updateErr) {
+            db.run('ROLLBACK');
+            return res.status(500).json({ error: 'Database error: ' + updateErr.message });
+          }
+
+          db.run(
+            `INSERT INTO data (
+               user_id, category, tarikh, rujukan, dibayar_kepada, kepala_vot, aktiviti, perkara,
+               liabiliti, bayaran, jumlah_bayaran, baki, transaction_type, voucher_status,
+               parent_data_id, cancelled_at, cancelled_by, cancellation_reason, image
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'voucher_cancel', 'cancel-entry', ?, ?, ?, ?, ?)`,
+            [
+              existing.user_id,
+              categoryNormalized,
+              cancelTarikh,
+              cancelRujukan,
+              existing.dibayar_kepada,
+              existing.kepala_vot,
+              existing.aktiviti || '',
+              cancelPerkara,
+              existing.liabiliti,
+              -amount,
+              existing.id,
+              cancelledAt,
+              req.session.userId,
+              reasonText || null,
+              existing.image || null
+            ],
+            function(insertErr) {
+              if (insertErr) {
+                db.run('ROLLBACK');
+                return res.status(500).json({ error: 'Database error: ' + insertErr.message });
+              }
+
+              const cancellationId = this.lastID;
+
+              recalculateScopeRunningTotals(existing.aktiviti, existing.kepala_vot, (recalcErr) => {
+                if (recalcErr) {
+                  db.run('ROLLBACK');
+                  return res.status(500).json({ error: 'Recalculate error: ' + recalcErr.message });
+                }
+
+                db.run('COMMIT', (commitErr) => {
+                  if (commitErr) {
+                    db.run('ROLLBACK');
+                    return res.status(500).json({ error: 'Database error: ' + commitErr.message });
+                  }
+
+                  res.json({ success: true, cancellationId });
+                });
+              });
+            }
+          );
+        }
+      );
+    });
+  });
+});
+
 // Delete data entry
 app.delete('/api/data/:id', requireAuth, (req, res) => {
-  const id = req.params.id;
-  db.run('DELETE FROM data WHERE id = ? AND user_id = ?', [id, req.session.userId], function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ error: 'Invalid data ID' });
+
+  const isAdmin = req.session && req.session.username === 'admin';
+  db.get('SELECT * FROM data WHERE id = ?', [id], (findErr, existing) => {
+    if (findErr) return res.status(500).json({ error: 'Database error' });
+    if (!existing) return res.status(404).json({ error: 'Data not found' });
+    if (!isAdmin && existing.user_id !== req.session.userId) {
+      return res.status(403).json({ error: 'Unauthorized to delete this entry' });
     }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Data not found' });
+    if (String(existing.transaction_type || 'bill') !== 'bill') {
+      return res.status(400).json({ error: 'Rekod pembatalan tidak boleh dipadam secara terus.' });
     }
-    res.json({ success: true });
+    if (String(existing.voucher_status || 'active') === 'cancelled') {
+      return res.status(400).json({ error: 'Baucar yang telah dibatalkan tidak boleh dipadam.' });
+    }
+
+    db.run('DELETE FROM data WHERE id = ?', [id], function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      recalculateScopeRunningTotals(existing.aktiviti, existing.kepala_vot, (recalcErr) => {
+        if (recalcErr) return res.status(500).json({ error: 'Recalculate error: ' + recalcErr.message });
+        res.json({ success: true });
+      });
+    });
   });
 });
 
@@ -1379,7 +1564,7 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         }
 
         const itemMonth = String(new Date(row.tarikh || row.created_at).getMonth() + 1).padStart(2, '0');
-        if (!openingByMonth[itemMonth]) {
+        if (!Object.prototype.hasOwnProperty.call(openingByMonth, itemMonth)) {
           if (!selectedKod) {
             openingByMonth[itemMonth] = totalPeruntukanGlobal - tempGlobalBayaran;
           } else {

@@ -108,9 +108,61 @@
     </div>
   </div>
 
+  <div id="actionPopupModal" class="modal action-popup-modal" style="z-index:1300;display:none;">
+    <div class="modal-content action-popup-content">
+      <h3 id="actionPopupTitle">Pengesahan</h3>
+      <p id="actionPopupMessage"></p>
+      <div class="action-popup-actions">
+        <button id="actionPopupNoBtn" class="btn btn-cancel" style="width:auto;padding:10px 18px;">Tidak</button>
+        <button id="actionPopupYesBtn" class="btn" style="width:auto;padding:10px 18px;">Ya</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Loading state management
     let isLoading = false;
+    let actionPopupResolver = null;
+
+    function closeActionPopup(result) {
+      const modal = document.getElementById('actionPopupModal');
+      if (modal) modal.style.display = 'none';
+      const resolver = actionPopupResolver;
+      actionPopupResolver = null;
+      if (resolver) resolver(result);
+    }
+
+    function openActionPopup(opts = {}) {
+      return new Promise((resolve) => {
+        actionPopupResolver = resolve;
+        const titleEl = document.getElementById('actionPopupTitle');
+        const msgEl = document.getElementById('actionPopupMessage');
+        const noBtn = document.getElementById('actionPopupNoBtn');
+        const yesBtn = document.getElementById('actionPopupYesBtn');
+        const modal = document.getElementById('actionPopupModal');
+
+        const mode = opts.mode || 'confirm';
+        titleEl.textContent = opts.title || 'Pengesahan';
+        msgEl.textContent = opts.message || '';
+        yesBtn.textContent = opts.yesText || (mode === 'info' ? 'OK' : 'Ya');
+        noBtn.textContent = opts.noText || 'Tidak';
+        noBtn.style.display = mode === 'info' ? 'none' : 'inline-flex';
+
+        noBtn.onclick = () => closeActionPopup({ confirmed: false });
+        yesBtn.onclick = () => closeActionPopup({ confirmed: true });
+
+        modal.style.display = 'flex';
+      });
+    }
+
+    async function showInfo(message, title = 'Makluman') {
+      await openActionPopup({ mode: 'info', title, message, yesText: 'OK' });
+    }
+
+    async function askYesNo(message, title = 'Pengesahan', yesText = 'Ya', noText = 'Tidak') {
+      const result = await openActionPopup({ mode: 'confirm', title, message, yesText, noText });
+      return !!result?.confirmed;
+    }
 
     // Show loading indicator
     function showLoading(elementId, message = 'Memuatkan...') {
@@ -362,11 +414,12 @@
     // Delete admin
     async function deleteAdmin(username, userId) {
       if (username === 'admin') {
-        alert('Cannot delete default admin user');
+        await showInfo('Cannot delete default admin user', 'Makluman');
         return;
       }
 
-      if (!confirm(`Are you sure you want to delete admin "${username}"?`)) {
+      const ok = await askYesNo(`Are you sure you want to delete admin "${username}"?`, 'Pengesahan Padam');
+      if (!ok) {
         return;
       }
 
@@ -379,13 +432,13 @@
         const result = await response.json();
 
         if (result.success) {
-          alert('Admin deleted successfully');
+          await showInfo('Admin deleted successfully', 'Berjaya');
           loadAdminList();
         } else {
-          alert('Error: ' + result.message);
+          await showInfo('Error: ' + result.message, 'Ralat');
         }
       } catch (error) {
-        alert('Error deleting admin');
+        await showInfo('Error deleting admin', 'Ralat');
         console.error('Error:', error);
       }
     }

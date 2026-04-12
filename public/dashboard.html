@@ -59,6 +59,11 @@
             <span class="menu-text">Daftar Bill</span>
           </button>
 
+          <button class="menu-item" onclick="switchView('cancelled-vouchers')">
+            <span class="menu-icon">↩️</span>
+            <span class="menu-text">Baucar Dibatalkan</span>
+          </button>
+
           <div class="menu-section">
             <div class="menu-section-title">Buku Vot</div>
             <button class="menu-item submenu" onclick="switchView('buku-210100')">
@@ -178,6 +183,7 @@
                   <option value="11">November</option>
                   <option value="12">Desember</option>
                 </select>
+                <input type="text" id="searchPenyataInput" class="table-search-input" placeholder="Cari nama, rujukan, perkara..." oninput="loadPenyataTransaksi()">
               </div>
               <div style="display:flex;gap:8px;align-items:center;">
                 <button class="export-btn export-pdf" onclick="exportBukuVot(currentPenyataCategory,'pdf')" title="Export Penyata PDF">&#128196; PDF</button>
@@ -465,29 +471,34 @@
               </select>
             </div>
           </div>
-          <div class="statistics-container">
-            <div class="stat-card">
-              <h3>Total Entries</h3>
-              <p class="stat-value" id="totalEntries">0</p>
-            </div>
-            <div class="stat-card">
-              <h3>Total Bayaran</h3>
-              <p class="stat-value" id="totalBayaran">RM 0.00</p>
-            </div>
-            <div class="stat-card">
-              <h3>Total Jumlah Bayaran</h3>
-              <p class="stat-value" id="totalJumlahBayaran">RM 0.00</p>
-            </div>
-            <div class="stat-card">
-              <h3>Total Baki</h3>
-              <p class="stat-value" id="totalBaki">RM 0.00</p>
-            </div>
-          </div>
           
           <div class="category-stats-section">
             <h2>Statistik Mengikut Buku VOT</h2>
             <div id="categoryStats" class="category-stats-container">
               <!-- Category statistics will be populated here -->
+            </div>
+            <div id="votPiePanel" class="vot-pie-panel" style="display:none;">
+              <div class="vot-pie-info">
+                <h3 id="votPieTitle">Carta Pai Buku VOT</h3>
+                <p>Klik mana-mana kotak Buku VOT untuk lihat pecahan Peruntukan vs Perbelanjaan vs Baki.</p>
+                <div class="vot-pie-legend">
+                  <div class="legend-item"><span class="dot dot-used"></span>Perbelanjaan</div>
+                  <div class="legend-item"><span class="dot dot-balance"></span>Baki Semasa</div>
+                </div>
+                <div class="vot-pie-values">
+                  <div><span>Peruntukan</span><strong id="votPiePeruntukan">RM 0.00</strong></div>
+                  <div><span>Perbelanjaan</span><strong id="votPieBayaran">RM 0.00</strong></div>
+                  <div><span>Baki</span><strong id="votPieBaki">RM 0.00</strong></div>
+                </div>
+              </div>
+              <div class="vot-pie-visual-wrap">
+                <div class="pie-3d-shell">
+                  <svg id="votPie3d" class="pie-3d" viewBox="0 0 200 200" aria-label="Carta pai Buku VOT"></svg>
+                  <div id="pieBadgeUsed" class="pie-percent-badge badge-used">↗ 0%</div>
+                  <div id="pieBadgeBalance" class="pie-percent-badge badge-balance">↘ 0%</div>
+                  <div id="votPie3dShadow" class="pie-3d-shadow"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -497,11 +508,6 @@
           <div class="view-header">
             <h1>Paparan Data</h1>
             <div class="view-controls">
-              <select id="bukuVotSelectDataPdf" class="month-select" style="margin-right: 10px;" title="Penapis ini digunakan untuk Export PDF sahaja">
-                <option value="">Tapis PDF: Semua Buku VOT</option>
-                <option value="210100">Tapis PDF: 210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA</option>
-                <option value="210200">Tapis PDF: 210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR</option>
-              </select>
               <select id="monthSelectData" onchange="loadData()" class="month-select">
                 <option value="">Semua Bulan</option>
                 <option value="01">Januari</option>
@@ -517,6 +523,7 @@
                 <option value="11">November</option>
                 <option value="12">Desember</option>
               </select>
+              <input type="text" id="searchDataInput" class="table-search-input" placeholder="Cari nama, rujukan, perkara..." oninput="loadData()">
             </div>
           </div>
 
@@ -525,7 +532,6 @@
             <button class="export-btn export-pdf" onclick="exportData('pdf')">📄 Export PDF</button>
             <button class="export-btn export-excel" onclick="exportData('excel')">📊 Export Excel</button>
             <button class="export-btn export-csv" onclick="exportData('csv')">📋 Export CSV</button>
-            <button class="btn" onclick="window.location.href='/data-entry'" style="display:inline-block;width:auto;padding:10px 20px;">➕ Tambah Data</button>
             <div style="flex:1;"></div>
             <!-- Bulk action bar (hidden until rows selected) -->
             <div id="bulkActionBar" style="display:none;align-items:center;gap:8px;">
@@ -550,6 +556,7 @@
                 <th>Bayaran</th>
                 <th>Jumlah Bayaran</th>
                 <th>Baki</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -560,6 +567,44 @@
           <div class="empty-message" id="emptyMessage" style="display: none;">
             No data available. <a href="#" onclick="switchView('data'); return false;">Add some data</a>
           </div>
+
+          <div id="editDataPanel" class="inline-edit-panel" style="display:none;">
+            <div class="inline-edit-header">
+              <h3>Kemaskini Rekod Data</h3>
+              <button type="button" class="inline-edit-close" onclick="closeEditDataPanel()">✕</button>
+            </div>
+            <div class="inline-edit-grid">
+              <div class="inline-edit-field">
+                <label for="editTarikh">Tarikh</label>
+                <input type="date" id="editTarikh">
+              </div>
+              <div class="inline-edit-field">
+                <label for="editRujukan">Rujukan</label>
+                <input type="text" id="editRujukan" placeholder="Masukkan rujukan">
+              </div>
+              <div class="inline-edit-field inline-edit-field-full">
+                <label for="editDibayar">Dibayar Kepada</label>
+                <input type="text" id="editDibayar" placeholder="Nama penerima bayaran">
+              </div>
+              <div class="inline-edit-field inline-edit-field-full">
+                <label for="editPerkara">Perkara / Butiran</label>
+                <textarea id="editPerkara" rows="3" placeholder="Butiran transaksi"></textarea>
+              </div>
+              <div class="inline-edit-field">
+                <label for="editLiabiliti">Liabiliti</label>
+                <input type="text" id="editLiabiliti" placeholder="Liabiliti">
+              </div>
+              <div class="inline-edit-field">
+                <label for="editBayaran">Bayaran (RM)</label>
+                <input type="number" id="editBayaran" step="0.01" min="0" placeholder="0.00">
+              </div>
+            </div>
+            <div class="inline-edit-actions">
+              <button type="button" class="btn" style="width:auto;padding:10px 18px;" onclick="submitEditData()">Simpan Kemaskini</button>
+              <button type="button" class="btn btn-cancel" style="width:auto;padding:10px 18px;" onclick="closeEditDataPanel()">Batal</button>
+            </div>
+          </div>
+
           <!-- Delete All button below table -->
           <div style="display:flex;justify-content:flex-end;margin-top:14px;">
             <button onclick="confirmDeleteAll()" style="
@@ -579,6 +624,39 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               Buang Semua Data
             </button>
+          </div>
+        </div>
+
+        <div id="cancelledVouchersView" class="view-section" style="display: none;">
+          <div class="view-header">
+            <div>
+              <h1>Baucar Dibatalkan</h1>
+              <p style="margin:6px 0 0;color:#6e7da3;font-size:0.95rem;">Rekod baucar yang telah dibatalkan dan dikreditkan semula ke peruntukan VOT.</p>
+            </div>
+            <div class="view-controls">
+              <button class="export-btn" onclick="loadCancelledVouchers()">⟳ Muat Semula</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table" id="cancelledVouchersTable">
+              <thead>
+                <tr>
+                  <th>Tarikh Baucar</th>
+                  <th>Tarikh Batal</th>
+                  <th>Rujukan</th>
+                  <th>Buku VOT + Kepala VOT</th>
+                  <th>Dibayar Kepada</th>
+                  <th>Amaun Asal</th>
+                  <th>Kredit Balik</th>
+                  <th>Sebab</th>
+                  <th>Dibatalkan Oleh</th>
+                </tr>
+              </thead>
+              <tbody id="cancelledVouchersBody"></tbody>
+            </table>
+          </div>
+          <div class="empty-message" id="cancelledVouchersEmpty" style="display: none;">
+            Tiada baucar dibatalkan setakat ini.
           </div>
         </div>
 
@@ -806,12 +884,100 @@
     </div>
   </div>
 
+  <div id="actionPopupModal" class="modal action-popup-modal" style="z-index:1300;display:none;">
+    <div class="modal-content action-popup-content">
+      <h3 id="actionPopupTitle">Pengesahan</h3>
+      <p id="actionPopupMessage"></p>
+      <div id="actionPopupFields" style="display:none;">
+        <div class="form-group">
+          <label for="actionPopupTarikh">Tarikh Pembatalan</label>
+          <input type="date" id="actionPopupTarikh">
+        </div>
+        <div class="form-group">
+          <label for="actionPopupReason">Sebab Pembatalan</label>
+          <input type="text" id="actionPopupReason" placeholder="Contoh: Kesilapan proses daftar bill">
+        </div>
+      </div>
+      <div class="action-popup-actions">
+        <button id="actionPopupNoBtn" class="btn btn-cancel" style="width:auto;padding:10px 18px;">Tidak</button>
+        <button id="actionPopupYesBtn" class="btn" style="width:auto;padding:10px 18px;">Ya</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const months = {
       '01': 'Januari', '02': 'Februari', '03': 'Maret', '04': 'April',
       '05': 'Mei', '06': 'Juni', '07': 'Juli', '08': 'Agustus',
       '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Desember'
     };
+    let currentUsername = '';
+    let actionPopupResolver = null;
+
+    function closeActionPopup(result) {
+      const modal = document.getElementById('actionPopupModal');
+      if (modal) modal.style.display = 'none';
+      const resolver = actionPopupResolver;
+      actionPopupResolver = null;
+      if (resolver) resolver(result);
+    }
+
+    function openActionPopup(opts = {}) {
+      return new Promise((resolve) => {
+        actionPopupResolver = resolve;
+        const titleEl = document.getElementById('actionPopupTitle');
+        const msgEl = document.getElementById('actionPopupMessage');
+        const fieldsEl = document.getElementById('actionPopupFields');
+        const tarikhEl = document.getElementById('actionPopupTarikh');
+        const reasonEl = document.getElementById('actionPopupReason');
+        const noBtn = document.getElementById('actionPopupNoBtn');
+        const yesBtn = document.getElementById('actionPopupYesBtn');
+        const modal = document.getElementById('actionPopupModal');
+
+        titleEl.textContent = opts.title || 'Pengesahan';
+        msgEl.textContent = opts.message || '';
+        yesBtn.textContent = opts.yesText || 'Ya';
+        noBtn.textContent = opts.noText || 'Tidak';
+
+        const mode = opts.mode || 'confirm';
+        if (mode === 'info') {
+          noBtn.style.display = 'none';
+          yesBtn.textContent = opts.yesText || 'OK';
+          fieldsEl.style.display = 'none';
+        } else {
+          noBtn.style.display = 'inline-flex';
+          fieldsEl.style.display = mode === 'cancel-voucher' ? 'block' : 'none';
+          if (mode === 'cancel-voucher') {
+            tarikhEl.value = opts.tarikh || new Date().toISOString().split('T')[0];
+            reasonEl.value = opts.reason || 'Kesilapan proses daftar bill';
+          }
+        }
+
+        noBtn.onclick = () => closeActionPopup({ confirmed: false });
+        yesBtn.onclick = () => {
+          if (mode === 'cancel-voucher') {
+            closeActionPopup({
+              confirmed: true,
+              tarikh: (tarikhEl.value || '').trim(),
+              reason: (reasonEl.value || '').trim()
+            });
+            return;
+          }
+          closeActionPopup({ confirmed: true });
+        };
+
+        modal.style.display = 'flex';
+      });
+    }
+
+    async function showInfo(message, title = 'Makluman') {
+      await openActionPopup({ mode: 'info', title, message, yesText: 'OK' });
+    }
+
+    async function askYesNo(message, title = 'Pengesahan', yesText = 'Ya', noText = 'Tidak') {
+      const result = await openActionPopup({ mode: 'confirm', title, message, yesText, noText });
+      return !!result?.confirmed;
+    }
 
     // Update all month selects based on current language
     function updateMonthSelects() {
@@ -859,6 +1025,7 @@
         const data = await response.json();
         const user = data.user || {};
         const username = user.username || data.username || 'User';
+        currentUsername = username;
         document.getElementById('username').textContent = username;
 
         // Set profile avatar
@@ -926,6 +1093,10 @@
           document.getElementById('dataView').style.display = 'block';
           loadData();
           break;
+        case 'cancelled-vouchers':
+          document.getElementById('cancelledVouchersView').style.display = 'block';
+          loadCancelledVouchers();
+          break;
         case 'daftar-pengguna':
           document.getElementById('daftarPenggunaView').style.display = 'block';
           loadUsers();
@@ -960,6 +1131,27 @@
       });
     }
 
+    function normalizeSearchTerm(value) {
+      return String(value || '').toLowerCase().trim();
+    }
+
+    function matchesSearch(item, searchTerm, extraText = '') {
+      if (!searchTerm) return true;
+      const haystack = [
+        item.tarikh,
+        item.rujukan,
+        item.dibayar_kepada,
+        item.perkara,
+        item.liabiliti,
+        item.kepala_vot,
+        item.aktiviti,
+        item.transaction_type,
+        item.voucher_status,
+        extraText
+      ].map((part) => String(part || '').toLowerCase()).join(' ');
+      return haystack.includes(searchTerm);
+    }
+
     // Load Buku Vot (by category) - running totals recomputed from data
     const categoryAktiviti = { perbekalan: '210100', pembangunan: '210200' };
     let currentPenyataCategory = 'perbekalan';
@@ -980,6 +1172,7 @@
         currentPenyataCategory = category;
         const aktivitiCode = categoryAktiviti[category] || '';
         const month = getSelectedMonth('monthSelectPenyata');
+        const searchTerm = normalizeSearchTerm(document.getElementById('searchPenyataInput')?.value || '');
         const titleMap = {
           perbekalan: 'Penyata Transaksi - Buku VOT 210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA',
           pembangunan: 'Penyata Transaksi - Buku VOT 210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR'
@@ -1031,13 +1224,25 @@
         let filteredData = scopedData;
         if (month) filteredData = filterDataByMonth(filteredData, month);
 
-        // Recalculate running totals from selected allocation for the displayed set.
+        const runningTotalsById = {};
         let runningTotal = 0;
-        filteredData.forEach(item => {
+        scopedData.forEach(item => {
           runningTotal += parseFloat(item.bayaran) || 0;
-          item._jumlah = runningTotal;
-          item._baki = peruntukan - runningTotal;
+          runningTotalsById[item.id] = {
+            jumlah: runningTotal,
+            baki: peruntukan - runningTotal
+          };
         });
+
+        filteredData.forEach(item => {
+          const totals = runningTotalsById[item.id] || { jumlah: 0, baki: peruntukan };
+          item._jumlah = totals.jumlah;
+          item._baki = totals.baki;
+        });
+
+        if (searchTerm) {
+          filteredData = filteredData.filter(item => matchesSearch(item, searchTerm));
+        }
 
         const tbody = document.getElementById('penyataTransaksiBody');
         if (!tbody) return;
@@ -1114,33 +1319,127 @@
             data = filterDataByMonth(data, month);
           }
 
-          // Overall statistics
-          document.getElementById('totalEntries').textContent = data.length;
-
-          let totalBayaran = 0;
-          let totalJumlahBayaran = 0;
-          const totalPeruntukanBukuVot = kvList
-            .filter(kv => {
-              const aktiviti = String(kv.aktiviti || '');
-              return aktiviti.startsWith('210100') || aktiviti.startsWith('210200');
-            })
-            .reduce((sum, kv) => sum + (parseFloat(kv.peruntukan) || 0), 0);
-
-          data.forEach(item => {
-            totalBayaran += parseFloat(item.bayaran) || 0;
-            totalJumlahBayaran += parseFloat(item.jumlah_bayaran) || 0;
-          });
-
-          const totalBaki = totalPeruntukanBukuVot - totalBayaran;
-
-          document.getElementById('totalBayaran').textContent = fmtRM(totalBayaran);
-          document.getElementById('totalJumlahBayaran').textContent = fmtRM(totalJumlahBayaran);
-          document.getElementById('totalBaki').textContent = fmtRM(totalBaki);
-
           // Buku VOT statistics (allocation from Kepala VOT + spending from transactions)
           const categories = ['210100', '210200'];
           const categoryStatsContainer = document.getElementById('categoryStats');
           categoryStatsContainer.innerHTML = '';
+          const piePanel = document.getElementById('votPiePanel');
+          const pie3d = document.getElementById('votPie3d');
+          const pieShadow = document.getElementById('votPie3dShadow');
+          const pieBadgeUsed = document.getElementById('pieBadgeUsed');
+          const pieBadgeBalance = document.getElementById('pieBadgeBalance');
+          const pieTitle = document.getElementById('votPieTitle');
+          const piePeruntukan = document.getElementById('votPiePeruntukan');
+          const pieBayaran = document.getElementById('votPieBayaran');
+          const pieBaki = document.getElementById('votPieBaki');
+          const statsByCategory = {};
+
+          const svgNs = 'http://www.w3.org/2000/svg';
+          const degToPoint = (cx, cy, r, deg) => {
+            const rad = (deg - 90) * (Math.PI / 180);
+            return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+          };
+
+          const makeSlicePath = (cx, cy, r, startDeg, endDeg) => {
+            const delta = Math.max(0, endDeg - startDeg);
+            if (delta >= 359.999) {
+              return `M ${cx} ${cy} m 0 ${-r} a ${r} ${r} 0 1 1 0 ${2 * r} a ${r} ${r} 0 1 1 0 ${-2 * r}`;
+            }
+            const start = degToPoint(cx, cy, r, startDeg);
+            const end = degToPoint(cx, cy, r, endDeg);
+            const largeArc = delta > 180 ? 1 : 0;
+            return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y} Z`;
+          };
+
+          const drawInteractivePie = (usedPct, balancePct) => {
+            if (!pie3d) return;
+            pie3d.innerHTML = '';
+
+            const cx = 100;
+            const cy = 100;
+            const radius = 76;
+
+            const addSlice = (part, startDeg, endDeg, topColor, depthColor) => {
+              if ((endDeg - startDeg) <= 0.01) return;
+              const d = makeSlicePath(cx, cy, radius, startDeg, endDeg);
+              const group = document.createElementNS(svgNs, 'g');
+              group.setAttribute('class', `pie-slice pie-slice-${part}`);
+              group.setAttribute('data-part', part);
+
+              const depth = document.createElementNS(svgNs, 'path');
+              depth.setAttribute('d', d);
+              depth.setAttribute('class', 'slice-depth');
+              depth.setAttribute('fill', depthColor);
+
+              const top = document.createElementNS(svgNs, 'path');
+              top.setAttribute('d', d);
+              top.setAttribute('class', 'slice-top');
+              top.setAttribute('fill', topColor);
+
+              group.appendChild(depth);
+              group.appendChild(top);
+              pie3d.appendChild(group);
+            };
+
+            const usedEnd = usedPct * 3.6;
+            addSlice('used', 0, usedEnd, '#ff8a00', '#b96500');
+            addSlice('balance', usedEnd, 360, '#36cfc9', '#1f8f8b');
+
+            const wireBadgeHover = (badgeEl, part) => {
+              if (!badgeEl) return;
+              badgeEl.onmouseenter = () => {
+                const target = pie3d.querySelector(`.pie-slice-${part}`);
+                if (target) target.classList.add('is-raised');
+              };
+              badgeEl.onmouseleave = () => {
+                const target = pie3d.querySelector(`.pie-slice-${part}`);
+                if (target) target.classList.remove('is-raised');
+              };
+            };
+
+            wireBadgeHover(pieBadgeUsed, 'used');
+            wireBadgeHover(pieBadgeBalance, 'balance');
+          };
+
+          const renderPieForCategory = (categoryCode) => {
+            const stat = statsByCategory[categoryCode];
+            if (!stat || !pie3d || !piePanel) return;
+
+            const peruntukan = Math.max(0, parseFloat(stat.peruntukan) || 0);
+            const bayaran = Math.max(0, parseFloat(stat.bayaran) || 0);
+            const baki = Math.max(0, parseFloat(stat.baki) || 0);
+
+            let usedPercent = 0;
+            if (peruntukan > 0) {
+              usedPercent = Math.min(100, (bayaran / peruntukan) * 100);
+            } else if (bayaran > 0) {
+              usedPercent = 100;
+            }
+
+            const balancePercent = Math.max(0, 100 - usedPercent);
+            drawInteractivePie(usedPercent, balancePercent);
+            if (pieBadgeUsed) pieBadgeUsed.textContent = `↗ ${usedPercent.toFixed(1)}%`;
+            if (pieBadgeBalance) pieBadgeBalance.textContent = `↘ ${balancePercent.toFixed(1)}%`;
+
+            pie3d.classList.remove('pie-animate');
+            void pie3d.offsetWidth;
+            pie3d.classList.add('pie-animate');
+            if (pieShadow) {
+              pieShadow.classList.remove('shadow-animate');
+              void pieShadow.offsetWidth;
+              pieShadow.classList.add('shadow-animate');
+            }
+
+            pieTitle.textContent = `Carta Pai Buku VOT ${stat.label}`;
+            piePeruntukan.textContent = fmtRM(peruntukan);
+            pieBayaran.textContent = fmtRM(bayaran);
+            pieBaki.textContent = fmtRM((parseFloat(stat.peruntukan) || 0) - (parseFloat(stat.bayaran) || 0));
+            piePanel.style.display = 'grid';
+
+            document.querySelectorAll('.category-stat').forEach(card => {
+              card.classList.toggle('active', card.dataset.categoryCode === categoryCode);
+            });
+          };
 
           categories.forEach(category => {
             const categoryData = data.filter(item => getProgramCode(item) === category);
@@ -1155,9 +1454,11 @@
 
             const catPeruntukan = kvByCategory.reduce((sum, kv) => sum + (parseFloat(kv.peruntukan) || 0), 0);
             const catBakiSemasa = catPeruntukan - catBayaran;
+            const categoryCode = category;
 
             const categoryCard = document.createElement('div');
             categoryCard.className = 'stat-card category-stat';
+            categoryCard.dataset.categoryCode = categoryCode;
             const catColors = {
               '210100': 'linear-gradient(135deg,#667eea,#764ba2)',
               '210200': 'linear-gradient(135deg,#11998e,#38ef7d)'
@@ -1196,8 +1497,22 @@
               </div>
               </div>
             `;
+            statsByCategory[categoryCode] = {
+              label: catLabel,
+              peruntukan: catPeruntukan,
+              bayaran: catBayaran,
+              baki: catBakiSemasa
+            };
+            categoryCard.addEventListener('click', () => renderPieForCategory(categoryCode));
             categoryStatsContainer.appendChild(categoryCard);
           });
+
+          const defaultCategory = categories.find(code => statsByCategory[code]) || '';
+          if (defaultCategory) {
+            renderPieForCategory(defaultCategory);
+          } else if (piePanel) {
+            piePanel.style.display = 'none';
+          }
         }
       } catch (error) {
         console.error('Error loading statistics:', error);
@@ -1279,7 +1594,8 @@
     }
 
     async function deleteKepalaVot(id) {
-      if (!confirm('Padamkan Kepala VOT ini?')) return;
+      const ok = await askYesNo('Padamkan Kepala VOT ini?', 'Pengesahan Padam');
+      if (!ok) return;
       try {
         // Find which aktiviti this KV belongs to before deleting
         const rows = document.querySelectorAll('#kepalaVotAdminBody tr');
@@ -1298,8 +1614,8 @@
           loadKepalaVotCards('perbekalan');
           loadKepalaVotCards('pembangunan');
         }
-        else alert(result.error || 'Gagal memadam.');
-      } catch(e) { alert('Ralat sambungan.'); }
+        else await showInfo(result.error || 'Gagal memadam.', 'Ralat');
+      } catch(e) { await showInfo('Ralat sambungan.', 'Ralat'); }
     }
 
     async function updateKepalaVotBudget(id) {
@@ -1320,7 +1636,7 @@
         loadKepalaVotCards('perbekalan');
         loadKepalaVotCards('pembangunan');
       } catch (e) {
-        alert(e.message || 'Ralat sambungan.');
+        await showInfo(e.message || 'Ralat sambungan.', 'Ralat');
       }
     }
 
@@ -1401,10 +1717,57 @@
     // ─────────────────────────────────────────────────────────
 
     const dataEditCache = {};
+  let currentEditingDataId = null;
+
+    function buildBukuVotKepalaLabel(item, kepalaVotMap) {
+      const aktivitiCode = String(item.aktiviti || '').trim().substring(0, 6);
+      const kod = String(item.kepala_vot || '-').trim();
+      const kvKey = aktivitiCode + '|' + kod;
+      const kvKeterangan = kepalaVotMap[kvKey] || '-';
+      const bukuVotHead = aktivitiCode === '210100'
+        ? '210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA'
+        : aktivitiCode === '210200'
+          ? '210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR'
+          : (item.aktiviti || '-');
+      return `${bukuVotHead} : ${kod} - ${kvKeterangan}`;
+    }
+
+    function getVoucherStatusBadge(item) {
+      const type = String(item.transaction_type || 'bill').trim();
+      const status = String(item.voucher_status || 'active').trim();
+      if (type === 'voucher_cancel') {
+        return '<span class="status-pill status-pill-credit">Kredit Balik</span>';
+      }
+      if (status === 'cancelled') {
+        return '<span class="status-pill status-pill-cancelled">Baucar Dibatalkan</span>';
+      }
+      return '<span class="status-pill status-pill-active">Aktif</span>';
+    }
+
+    function getDataActionButtons(item) {
+      const type = String(item.transaction_type || 'bill').trim();
+      const status = String(item.voucher_status || 'active').trim();
+
+      if (type === 'voucher_cancel') {
+        return '<span class="action-note">Rekod kredit balik</span>';
+      }
+
+      if (status === 'cancelled') {
+        return '<span class="action-note">Sudah dibatalkan</span>';
+      }
+
+      const buttons = [`<button class="edit-btn" onclick="editData(${item.id})">Edit</button>`];
+      if (currentUsername === 'admin') {
+        buttons.push(`<button class="cancel-btn" onclick="cancelVoucher(${item.id})">Batalkan Baucar</button>`);
+      }
+      buttons.push(`<button class="delete-btn" onclick="deleteData(${item.id})">Delete</button>`);
+      return buttons.join('');
+    }
 
     // Load data
     async function loadData() {
       try {
+        closeEditDataPanel();
         const [response, kvResponse] = await Promise.all([
           fetch('/api/data?all=true', { credentials: 'same-origin' }),
           fetch('/api/kepala-vot', { credentials: 'same-origin' })
@@ -1426,15 +1789,8 @@
             kepalaVotMap[key] = kv.keterangan || '-';
           });
 
-          const getAktivitiCode = (aktivitiText) => String(aktivitiText || '').trim().substring(0, 6);
-          const getBukuVotLabel = (aktivitiText) => {
-            const code = getAktivitiCode(aktivitiText);
-            if (code === '210100') return '210100 - PERBELANJAAN SEKRETARIAT SABAH MAJU JAYA';
-            if (code === '210200') return '210200 - PROGRAM MENOKTAHKAN MISKIN TEGAR';
-            return aktivitiText || '-';
-          };
-
           const month = getSelectedMonth('monthSelectData');
+          const searchTerm = normalizeSearchTerm(document.getElementById('searchDataInput')?.value || '');
           let data = result.data;
           
           // Then filter by month
@@ -1449,14 +1805,16 @@
             dataEditCache[item.id] = item;
             const row = document.createElement('tr');
             row.dataset.id = item.id;
-            const aktivitiCode = getAktivitiCode(item.aktiviti);
-            const kod = String(item.kepala_vot || '-').trim();
-            const kvKey = aktivitiCode + '|' + kod;
-            const kvKeterangan = kepalaVotMap[kvKey] || '-';
-            const bukuVotHead = getBukuVotLabel(item.aktiviti);
-            const bukuVotKepala = `${bukuVotHead} : ${kod} - ${kvKeterangan}`;
+            const isSelectable = String(item.transaction_type || 'bill') === 'bill' && String(item.voucher_status || 'active') === 'active';
+            const bukuVotKepala = buildBukuVotKepalaLabel(item, kepalaVotMap);
+            if (!matchesSearch(item, searchTerm, bukuVotKepala)) return;
+            if (String(item.transaction_type || 'bill') === 'voucher_cancel') {
+              row.classList.add('voucher-cancel-row');
+            } else if (String(item.voucher_status || 'active') === 'cancelled') {
+              row.classList.add('voucher-cancelled-row');
+            }
             row.innerHTML = `
-              <td style="text-align:center;"><input type="checkbox" class="row-checkbox" value="${item.id}" onchange="updateBulkBar()" style="width:15px;height:15px;cursor:pointer;"></td>
+              <td style="text-align:center;">${isSelectable ? `<input type="checkbox" class="row-checkbox" value="${item.id}" onchange="updateBulkBar()" style="width:15px;height:15px;cursor:pointer;">` : '<span style="color:#b7bfd3;">-</span>'}</td>
               <td>${item.tarikh || '-'}</td>
               <td>${item.rujukan || '-'}</td>
               <td>${bukuVotKepala}</td>
@@ -1466,9 +1824,9 @@
               <td>${fmtRM(item.bayaran)}</td>
               <td>${fmtRM(item.jumlah_bayaran)}</td>
               <td>${fmtRM(item.baki)}</td>
+              <td>${getVoucherStatusBadge(item)}</td>
               <td style="white-space:nowrap;">
-                <button class="edit-btn" onclick="editData(${item.id})">Edit</button>
-                <button class="delete-btn" onclick="deleteData(${item.id})">Delete</button>
+                ${getDataActionButtons(item)}
               </td>
             `;
             tbody.appendChild(row);
@@ -1483,6 +1841,87 @@
         }
       } catch (error) {
         console.error('Error loading data:', error);
+      }
+    }
+
+    function closeEditDataPanel() {
+      currentEditingDataId = null;
+      const panel = document.getElementById('editDataPanel');
+      if (panel) panel.style.display = 'none';
+    }
+
+    function openEditDataPanel(item) {
+      currentEditingDataId = item.id;
+      document.getElementById('editTarikh').value = item.tarikh || '';
+      document.getElementById('editRujukan').value = item.rujukan || '';
+      document.getElementById('editDibayar').value = item.dibayar_kepada || '';
+      document.getElementById('editPerkara').value = item.perkara || '';
+      document.getElementById('editLiabiliti').value = item.liabiliti || '';
+      document.getElementById('editBayaran').value = String(item.bayaran || 0);
+
+      const panel = document.getElementById('editDataPanel');
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function submitEditData() {
+      if (!currentEditingDataId) {
+        await showInfo('Tiada rekod dipilih untuk dikemaskini.', 'Makluman');
+        return;
+      }
+
+      const item = dataEditCache[currentEditingDataId];
+      if (!item) {
+        await showInfo('Data tidak dijumpai. Sila refresh paparan.', 'Makluman');
+        return;
+      }
+
+      const tarikh = document.getElementById('editTarikh').value;
+      const rujukan = document.getElementById('editRujukan').value.trim();
+      const dibayar = document.getElementById('editDibayar').value.trim();
+      const perkara = document.getElementById('editPerkara').value.trim();
+      const liabiliti = document.getElementById('editLiabiliti').value.trim();
+      const bayaran = parseFloat(document.getElementById('editBayaran').value);
+
+      if (!tarikh || !perkara) {
+        await showInfo('Tarikh dan Perkara wajib diisi.', 'Semakan Input');
+        return;
+      }
+      if (!Number.isFinite(bayaran) || bayaran < 0) {
+        await showInfo('Nilai bayaran tidak sah.', 'Semakan Input');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/data/${currentEditingDataId}`, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: item.category,
+            aktiviti: item.aktiviti,
+            kepala_vot: item.kepala_vot,
+            tarikh,
+            rujukan,
+            dibayar_kepada: dibayar,
+            perkara,
+            liabiliti,
+            bayaran
+          })
+        });
+        const result = await response.json();
+        if (result.success) {
+          closeEditDataPanel();
+          loadData();
+          if (document.getElementById('penyataTransaksiView').style.display === 'block') {
+            loadPenyataTransaksi();
+          }
+        } else {
+          await showInfo('Ralat kemaskini: ' + (result.error || 'Tidak berjaya'), 'Ralat');
+        }
+      } catch (error) {
+        console.error('Error updating data:', error);
+        await showInfo('Ralat sambungan semasa kemaskini data.', 'Ralat');
       }
     }
 
@@ -1683,7 +2122,8 @@
     async function deleteSelectedData() {
       const checked = document.querySelectorAll('.row-checkbox:checked');
       if (checked.length === 0) return;
-      if (!confirm(`Padam ${checked.length} rekod yang dipilih? Tindakan ini tidak boleh dibatalkan.`)) return;
+      const ok = await askYesNo(`Padam ${checked.length} rekod yang dipilih? Tindakan ini tidak boleh dibatalkan.`, 'Pengesahan Padam');
+      if (!ok) return;
       const ids = Array.from(checked).map(cb => parseInt(cb.value));
       try {
         const res = await fetch('/api/data', {
@@ -1696,17 +2136,19 @@
         if (result.success) {
           loadData();
         } else {
-          alert('Ralat: ' + result.error);
+          await showInfo('Ralat: ' + result.error, 'Ralat');
         }
       } catch (e) {
-        alert('Ralat menyambung ke pelayan');
+        await showInfo('Ralat menyambung ke pelayan', 'Ralat');
       }
     }
 
     // Delete ALL data
     async function confirmDeleteAll() {
-      if (!confirm('⚠️ AMARAN: Ini akan memadam SEMUA data dalam sistem!\n\nAdakah anda pasti?')) return;
-      if (!confirm('Pengesahan terakhir — tekan OK untuk memadam semua data.')) return;
+      const first = await askYesNo('⚠️ AMARAN: Ini akan memadam SEMUA data dalam sistem! Adakah anda pasti?', 'Amaran');
+      if (!first) return;
+      const second = await askYesNo('Pengesahan terakhir: teruskan padam semua data?', 'Pengesahan Terakhir', 'Ya, Padam', 'Tidak');
+      if (!second) return;
       try {
         const res = await fetch('/api/data-all', {
           method: 'DELETE',
@@ -1714,19 +2156,20 @@
         });
         const result = await res.json();
         if (result.success) {
-          alert(`✅ ${result.deleted} rekod telah dipadam.`);
+          await showInfo(`✅ ${result.deleted} rekod telah dipadam.`, 'Berjaya');
           loadData();
         } else {
-          alert('Ralat: ' + result.error);
+          await showInfo('Ralat: ' + result.error, 'Ralat');
         }
       } catch (e) {
-        alert('Ralat menyambung ke pelayan');
+        await showInfo('Ralat menyambung ke pelayan', 'Ralat');
       }
     }
 
     // Delete data
     async function deleteData(id) {
-      if (!confirm('Are you sure you want to delete this entry?')) return;
+      const ok = await askYesNo('Adakah anda pasti mahu padam rekod ini?', 'Pengesahan Padam');
+      if (!ok) return;
 
       try {
         const response = await fetch(`/api/data/${id}`, {
@@ -1738,10 +2181,107 @@
         if (result.success) {
           loadData();
         } else {
-          alert('Error deleting data: ' + result.message);
+          await showInfo('Error deleting data: ' + result.message, 'Ralat');
         }
       } catch (error) {
         console.error('Error deleting data:', error);
+      }
+    }
+
+    async function cancelVoucher(id) {
+      const item = dataEditCache[id];
+      if (!item) {
+        await showInfo('Baucar tidak dijumpai. Sila refresh paparan.', 'Makluman');
+        return;
+      }
+      if (currentUsername !== 'admin') {
+        await showInfo('Hanya admin dibenarkan membatalkan baucar.', 'Akses Ditolak');
+        return;
+      }
+
+      const popupResult = await openActionPopup({
+        mode: 'cancel-voucher',
+        title: 'Batalkan Baucar',
+        message: 'Adakah anda pasti untuk membatalkan baucar ini dan kreditkan semula ke peruntukan VOT?',
+        yesText: 'Ya, Batalkan',
+        noText: 'Tidak'
+      });
+      if (!popupResult?.confirmed) return;
+      const tarikh = popupResult.tarikh;
+      const reason = popupResult.reason;
+      if (!tarikh) {
+        await showInfo('Tarikh pembatalan diperlukan.', 'Semakan Input');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/data/${id}/cancel-voucher`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tarikh, reason })
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          await showInfo('Ralat pembatalan: ' + (result.error || 'Tidak berjaya'), 'Ralat');
+          return;
+        }
+
+        await showInfo('Baucar berjaya dibatalkan dan dikreditkan semula ke peruntukan VOT.', 'Berjaya');
+        loadData();
+        loadCancelledVouchers();
+        if (document.getElementById('penyataTransaksiView').style.display === 'block') {
+          loadPenyataTransaksi();
+        }
+      } catch (error) {
+        console.error('Error cancelling voucher:', error);
+        await showInfo('Ralat sambungan semasa pembatalan baucar.', 'Ralat');
+      }
+    }
+
+    async function loadCancelledVouchers() {
+      try {
+        const [response, kvResponse] = await Promise.all([
+          fetch('/api/cancelled-vouchers', { credentials: 'same-origin' }),
+          fetch('/api/kepala-vot', { credentials: 'same-origin' })
+        ]);
+        const result = await response.json();
+        const kvResult = await kvResponse.json();
+        const tbody = document.getElementById('cancelledVouchersBody');
+        const empty = document.getElementById('cancelledVouchersEmpty');
+        tbody.innerHTML = '';
+
+        const kepalaVotMap = {};
+        (kvResult.success ? (kvResult.data || []) : []).forEach(kv => {
+          const aktCode = String(kv.aktiviti || '').trim().substring(0, 6);
+          const key = aktCode + '|' + String(kv.kod || '').trim();
+          kepalaVotMap[key] = kv.keterangan || '-';
+        });
+
+        if (!result.success || !Array.isArray(result.data) || result.data.length === 0) {
+          empty.style.display = 'block';
+          return;
+        }
+
+        empty.style.display = 'none';
+        result.data.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.tarikh || '-'}</td>
+            <td>${item.cancellation_tarikh || '-'}</td>
+            <td>${item.rujukan || '-'}</td>
+            <td>${buildBukuVotKepalaLabel(item, kepalaVotMap)}</td>
+            <td>${item.dibayar_kepada || '-'}</td>
+            <td>${fmtRM(item.bayaran)}</td>
+            <td>${fmtRM(Math.abs(parseFloat(item.cancellation_amount) || 0))}</td>
+            <td>${item.cancellation_reason || '-'}</td>
+            <td>${item.cancelled_by_username || 'admin'}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Error loading cancelled vouchers:', error);
       }
     }
 
@@ -1749,60 +2289,15 @@
     async function editData(id) {
       const item = dataEditCache[id];
       if (!item) {
-        alert('Data tidak dijumpai. Sila refresh paparan.');
+        await showInfo('Data tidak dijumpai. Sila refresh paparan.', 'Makluman');
+        return;
+      }
+      if (String(item.transaction_type || 'bill') !== 'bill' || String(item.voucher_status || 'active') === 'cancelled') {
+        await showInfo('Rekod ini tidak boleh dikemaskini lagi.', 'Makluman');
         return;
       }
 
-      const tarikh = prompt('Tarikh (YYYY-MM-DD):', item.tarikh || '');
-      if (tarikh === null) return;
-
-      const rujukan = prompt('Rujukan:', item.rujukan || '');
-      if (rujukan === null) return;
-
-      const dibayar = prompt('Dibayar Kepada:', item.dibayar_kepada || '');
-      if (dibayar === null) return;
-
-      const perkara = prompt('Perkara / Butiran:', item.perkara || '');
-      if (perkara === null) return;
-
-      const liabiliti = prompt('Liabiliti:', item.liabiliti || '');
-      if (liabiliti === null) return;
-
-      const bayaranInput = prompt('Bayaran (RM):', String(item.bayaran || 0));
-      if (bayaranInput === null) return;
-      const bayaran = parseFloat(bayaranInput);
-      if (!Number.isFinite(bayaran) || bayaran < 0) {
-        alert('Nilai bayaran tidak sah.');
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/data/${id}`, {
-          method: 'PUT',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            category: item.category,
-            aktiviti: item.aktiviti,
-            kepala_vot: item.kepala_vot,
-            tarikh,
-            rujukan,
-            dibayar_kepada: dibayar,
-            perkara,
-            liabiliti,
-            bayaran
-          })
-        });
-        const result = await response.json();
-        if (result.success) {
-          loadData();
-        } else {
-          alert('Ralat kemaskini: ' + (result.error || 'Tidak berjaya'));
-        }
-      } catch (error) {
-        console.error('Error updating data:', error);
-        alert('Ralat sambungan semasa kemaskini data.');
-      }
+      openEditDataPanel(item);
     }
 
     // Logout
@@ -1824,11 +2319,9 @@
 
     // Export data (from Paparan Data view)
     function exportData(format) {
-      const month      = getSelectedMonth('monthSelectData');
-      const bukuVotPdf = document.getElementById('bukuVotSelectDataPdf')?.value || '';
-      const params     = new URLSearchParams();
+      const month  = getSelectedMonth('monthSelectData');
+      const params = new URLSearchParams();
       if (month) params.set('month', month);
-      if (format === 'pdf' && bukuVotPdf) params.set('buku_vot', bukuVotPdf);
       const qs = params.toString() ? '?' + params.toString() : '';
       if (format === 'pdf')   window.location.href = '/api/penyata/pdf'   + qs;
       else if (format === 'excel') window.location.href = '/api/penyata/excel' + qs;
@@ -2229,7 +2722,8 @@
 
     // Delete User
     async function deleteUser(id) {
-      if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) return;
+      const ok = await askYesNo('Apakah Anda yakin ingin menghapus pengguna ini?', 'Pengesahan Padam');
+      if (!ok) return;
 
       try {
         const response = await fetch(`/api/users/${id}`, {
@@ -2240,14 +2734,14 @@
         const result = await response.json();
 
         if (result.success) {
-          alert('Pengguna berhasil dihapus!');
+          await showInfo('Pengguna berhasil dihapus!', 'Berjaya');
           loadUsers();
         } else {
-          alert('Error: ' + result.error);
+          await showInfo('Error: ' + result.error, 'Ralat');
         }
       } catch (error) {
         console.error('Error deleting user:', error);
-        alert('Error deleting user');
+        await showInfo('Error deleting user', 'Ralat');
       }
     }
 
@@ -2287,7 +2781,8 @@
 
     // Delete Notice
     async function deleteNotice(id) {
-      if (!confirm('Apakah Anda yakin ingin menghapus notis ini?')) return;
+      const ok = await askYesNo('Apakah Anda yakin ingin menghapus notis ini?', 'Pengesahan Padam');
+      if (!ok) return;
 
       try {
         const response = await fetch(`/api/notices/${id}`, {
@@ -2298,14 +2793,14 @@
         const result = await response.json();
 
         if (result.success) {
-          alert('Notis berhasil dihapus!');
+          await showInfo('Notis berhasil dihapus!', 'Berjaya');
           loadNotesHistory();
         } else {
-          alert('Error: ' + result.error);
+          await showInfo('Error: ' + result.error, 'Ralat');
         }
       } catch (error) {
         console.error('Error deleting notice:', error);
-        alert('Error deleting notice');
+        await showInfo('Error deleting notice', 'Ralat');
       }
     }
 

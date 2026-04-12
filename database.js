@@ -46,6 +46,12 @@ db.serialize(() => {
       bayaran REAL,
       jumlah_bayaran REAL,
       baki REAL,
+      transaction_type TEXT DEFAULT 'bill',
+      voucher_status TEXT DEFAULT 'active',
+      parent_data_id INTEGER,
+      cancelled_at DATETIME,
+      cancelled_by INTEGER,
+      cancellation_reason TEXT,
       image TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -113,6 +119,54 @@ db.serialize(() => {
         db.run(`ALTER TABLE data ADD COLUMN aktiviti TEXT`, (err) => {
           if (err) console.error('Error adding aktiviti column:', err);
           else console.log('Added aktiviti column to data table');
+        });
+      }
+
+      const hasTransactionType = columns.some(col => col.name === 'transaction_type');
+      if (!hasTransactionType) {
+        db.run(`ALTER TABLE data ADD COLUMN transaction_type TEXT DEFAULT 'bill'`, (err) => {
+          if (err) console.error('Error adding transaction_type column:', err);
+          else console.log('Added transaction_type column to data table');
+        });
+      }
+
+      const hasVoucherStatus = columns.some(col => col.name === 'voucher_status');
+      if (!hasVoucherStatus) {
+        db.run(`ALTER TABLE data ADD COLUMN voucher_status TEXT DEFAULT 'active'`, (err) => {
+          if (err) console.error('Error adding voucher_status column:', err);
+          else console.log('Added voucher_status column to data table');
+        });
+      }
+
+      const hasParentDataId = columns.some(col => col.name === 'parent_data_id');
+      if (!hasParentDataId) {
+        db.run(`ALTER TABLE data ADD COLUMN parent_data_id INTEGER`, (err) => {
+          if (err) console.error('Error adding parent_data_id column:', err);
+          else console.log('Added parent_data_id column to data table');
+        });
+      }
+
+      const hasCancelledAt = columns.some(col => col.name === 'cancelled_at');
+      if (!hasCancelledAt) {
+        db.run(`ALTER TABLE data ADD COLUMN cancelled_at DATETIME`, (err) => {
+          if (err) console.error('Error adding cancelled_at column:', err);
+          else console.log('Added cancelled_at column to data table');
+        });
+      }
+
+      const hasCancelledBy = columns.some(col => col.name === 'cancelled_by');
+      if (!hasCancelledBy) {
+        db.run(`ALTER TABLE data ADD COLUMN cancelled_by INTEGER`, (err) => {
+          if (err) console.error('Error adding cancelled_by column:', err);
+          else console.log('Added cancelled_by column to data table');
+        });
+      }
+
+      const hasCancellationReason = columns.some(col => col.name === 'cancellation_reason');
+      if (!hasCancellationReason) {
+        db.run(`ALTER TABLE data ADD COLUMN cancellation_reason TEXT`, (err) => {
+          if (err) console.error('Error adding cancellation_reason column:', err);
+          else console.log('Added cancellation_reason column to data table');
         });
       }
     }
