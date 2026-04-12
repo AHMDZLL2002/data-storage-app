@@ -1122,13 +1122,19 @@
 
           let totalBayaran = 0;
           let totalJumlahBayaran = 0;
-          let totalBaki = 0;
+          const totalPeruntukanBukuVot = kvList
+            .filter(kv => {
+              const aktiviti = String(kv.aktiviti || '');
+              return aktiviti.startsWith('210100') || aktiviti.startsWith('210200');
+            })
+            .reduce((sum, kv) => sum + (parseFloat(kv.peruntukan) || 0), 0);
 
           data.forEach(item => {
             totalBayaran += parseFloat(item.bayaran) || 0;
             totalJumlahBayaran += parseFloat(item.jumlah_bayaran) || 0;
-            totalBaki += parseFloat(item.baki) || 0;
           });
+
+          const totalBaki = totalPeruntukanBukuVot - totalBayaran;
 
           document.getElementById('totalBayaran').textContent = fmtRM(totalBayaran);
           document.getElementById('totalJumlahBayaran').textContent = fmtRM(totalJumlahBayaran);
