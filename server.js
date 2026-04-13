@@ -26,6 +26,16 @@ let lastBackupInfo = {
   error: null
 };
 
+function getPublicBaseUrl(req) {
+  const fromEnv = (process.env.PUBLIC_BASE_URL || '').trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+
+  const forwardedProto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol || 'http';
+  const host = req.get('host');
+  return `${protocol}://${host}`.replace(/\/$/, '');
+}
+
 // Trust Render's reverse proxy so secure cookies work over HTTPS
 app.set('trust proxy', 1);
 
@@ -981,6 +991,45 @@ app.get('/api/balance/:category', requireAuth, (req, res) => {
 // Serve index.html for root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// SEO: robots file for search engine crawlers
+app.get('/robots.txt', (req, res) => {
+  const baseUrl = getPublicBaseUrl(req);
+  const content = [
+    'User-agent: *',
+    'Allow: /',
+    'Disallow: /api/',
+    'Disallow: /dashboard',
+    'Disallow: /data-entry',
+    'Disallow: /admin-management',
+    `Sitemap: ${baseUrl}/sitemap.xml`
+  ].join('\n');
+
+  res.type('text/plain').send(content);
+});
+
+// SEO: sitemap for Google indexing
+app.get('/sitemap.xml', (req, res) => {
+  const baseUrl = getPublicBaseUrl(req);
+  const nowIso = new Date().toISOString();
+  const urls = [
+    { loc: `${baseUrl}/`, changefreq: 'weekly', priority: '1.0' }
+  ];
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    urls.map((url) => (
+      `  <url>\n` +
+      `    <loc>${url.loc}</loc>\n` +
+      `    <lastmod>${nowIso}</lastmod>\n` +
+      `    <changefreq>${url.changefreq}</changefreq>\n` +
+      `    <priority>${url.priority}</priority>\n` +
+      `  </url>`
+    )).join('\n') +
+    `\n</urlset>`;
+
+  res.type('application/xml').send(xml);
 });
 
 // ── Kepala VOT List API ─────────────────────────────────────────
