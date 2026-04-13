@@ -1503,7 +1503,7 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
         { h:'Tarikh',               w:72,  a:'left',   k:'tarikh'         },
         { h:'Rujukan Transaksi',    w:96,  a:'left',   k:'rujukan'        },
         { h:'Dibayar Kepada',       w:132, a:'left',   k:'dibayar_kepada' },
-        { h:'Butiran Transaksi',    w:220, a:'left',   k:'butiran_penyata' },
+        { h:'Butiran Transaksi',    w:230, a:'left',   k:'butiran_penyata' },
         { h:'Amaun (RM)',           w:82,  a:'right',  k:'bayaran'        },
         { h:'Jumlah Bayaran (RM)',  w:87,  a:'right',  k:'jumlah_bayaran' },
         { h:'Baki Semasa (RM)',     w:87,  a:'right',  k:'baki'           },
@@ -1602,7 +1602,7 @@ app.get('/api/penyata/pdf', requireAuth, (req, res) => {
             doc.fillColor(c.k==='baki' && n<0 ? '#c0392b' : '#333');
           } else {
             const raw = (row[c.k]||'-').toString();
-            const limit = c.k==='perkara' ? 52 : c.k==='dibayar_kepada' ? 22 : 18;
+            const limit = c.k==='butiran_penyata' ? 68 : c.k==='dibayar_kepada' ? 24 : 20;
             val = raw.length > limit ? raw.substring(0,limit)+'…' : raw;
           }
           doc.text(val, x+3, y+5, { width:c.w-6, align:c.a });
